@@ -2,6 +2,78 @@ document.addEventListener("DOMContentLoaded", function () {
     const displayCanvas = document.getElementById('demoCanvas');
     const displayCtx = displayCanvas.getContext('2d');
 
+    // Create splash screen
+    const splashScreen = document.createElement('div');
+    splashScreen.id = 'splash-screen';
+    splashScreen.innerHTML = `
+        <div class="splash-content">
+            <h1>SYSTEM INITIALISED.</h1>
+            <div class="crt-text">Click to start</div>
+            <div class="scanline"></div>
+        </div>
+    `;
+    document.body.appendChild(splashScreen);
+    
+    // Style the splash screen
+    splashScreen.style.position = 'fixed';
+    splashScreen.style.top = '0';
+    splashScreen.style.left = '0';
+    splashScreen.style.width = '100%';
+    splashScreen.style.height = '100%';
+    splashScreen.style.backgroundColor = '#000';
+    splashScreen.style.display = 'flex';
+    splashScreen.style.justifyContent = 'center';
+    splashScreen.style.alignItems = 'center';
+    splashScreen.style.zIndex = '1000';
+    splashScreen.style.cursor = 'pointer';
+    splashScreen.style.fontFamily = "'Press Start 2P', cursive";
+    splashScreen.style.color = '#fff';
+    splashScreen.style.textAlign = 'center';
+    
+    const splashContent = splashScreen.querySelector('.splash-content');
+    splashContent.style.position = 'relative';
+    splashContent.style.padding = '20px';
+    
+    const splashTitle = splashScreen.querySelector('h1');
+    splashTitle.style.fontSize = '32px';
+    splashTitle.style.marginBottom = '40px';
+    splashTitle.style.color = '#0ff';
+    splashTitle.style.textShadow = '0 0 10px #0ff, 0 0 20px #0ff';
+    
+    const clickText = splashScreen.querySelector('.crt-text');
+    clickText.style.fontSize = '20px';
+    clickText.style.animation = 'pulse 1.5s infinite';
+    
+    // Add blinking animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+        
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.1);
+            animation: scanline 2s linear infinite;
+            pointer-events: none;
+        }
+        
+        #splash-screen {
+            transition: opacity 0.8s;
+        }
+    `;
+    document.head.appendChild(style);
+
     const offscreenCanvas = document.createElement('canvas');
     const offscreenCtx = offscreenCanvas.getContext('2d');
     offscreenCanvas.width = 800; // Fixed dimension
@@ -14,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let audioData;
     let isAudioPlaying = false;
     let audioElement;
+    let isDemoStarted = false;
 
     // Starfield settings
     const starCount = 300;
@@ -55,70 +128,69 @@ document.addEventListener("DOMContentLoaded", function () {
         audioSource.connect(audioAnalyser);
         audioAnalyser.connect(audioContext.destination);
         
-        // Try to autoplay
-        const playPromise = audioElement.play();
+        // Do not autoplay - wait for splash screen click
+        console.log("Audio ready, waiting for user interaction");
+    }
+
+    function startDemo() {
+        if (isDemoStarted) return;
+        isDemoStarted = true;
         
-        // Handle autoplay restrictions
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                // Autoplay successful
-                isAudioPlaying = true;
-                console.log("Audio started automatically");
-            }).catch(error => {
-                // Autoplay prevented by browser policy
-                console.warn("Autoplay prevented:", error);
-                
-                // Add an event listener to start audio on first user interaction
-                const startAudioOnInteraction = function() {
-                    audioContext.resume().then(() => {
-                        audioElement.play();
+        // Fade out and remove splash screen
+        splashScreen.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(splashScreen);
+        }, 800);
+        
+        // Start audio
+        if (audioContext && audioElement) {
+            audioContext.resume().then(() => {
+                audioElement.play()
+                    .then(() => {
                         isAudioPlaying = true;
-                        console.log("Audio started on user interaction");
+                        console.log("Audio started successfully");
+                    })
+                    .catch(error => {
+                        console.error("Error starting audio:", error);
+                        showAudioErrorMessage();
                     });
-                    
-                    // Remove the event listeners once audio has started
-                    ['click', 'touchstart', 'keydown'].forEach(event => {
-                        document.removeEventListener(event, startAudioOnInteraction);
-                    });
-                };
-                
-                // Add event listeners for common user interactions
-                ['click', 'touchstart', 'keydown'].forEach(event => {
-                    document.addEventListener(event, startAudioOnInteraction, {once: true});
-                });
-                
-                // Display a message to inform the user (optional)
-                const message = document.createElement('div');
-                message.textContent = "Click, tap or press any key to start the music";
-                message.style.position = "absolute";
-                message.style.top = "10px";
-                message.style.left = "50%";
-                message.style.transform = "translateX(-50%)";
-                message.style.color = "white";
-                message.style.fontFamily = "'Press Start 2P', cursive";
-                message.style.fontSize = "12px";
-                message.style.background = "rgba(0, 0, 0, 0.7)";
-                message.style.padding = "10px";
-                message.style.borderRadius = "5px";
-                message.style.zIndex = "100";
-                document.body.appendChild(message);
-                
-                // Remove message on first interaction
-                const removeMessage = function() {
-                    if (message.parentNode) {
-                        message.parentNode.removeChild(message);
-                    }
-                    ['click', 'touchstart', 'keydown'].forEach(event => {
-                        document.removeEventListener(event, removeMessage);
-                    });
-                };
-                
-                ['click', 'touchstart', 'keydown'].forEach(event => {
-                    document.addEventListener(event, removeMessage, {once: true});
-                });
             });
         }
+        
+        // Make sure canvas is properly sized
+        resizeDisplayCanvas();
+        
+        // Start rendering
+        if (!isRendering) {
+            isRendering = true;
+            render();
+        }
     }
+    
+    function showAudioErrorMessage() {
+        const message = document.createElement('div');
+        message.textContent = "Unable to play audio. Demo will continue without sound.";
+        message.style.position = "absolute";
+        message.style.top = "10px";
+        message.style.left = "50%";
+        message.style.transform = "translateX(-50%)";
+        message.style.color = "white";
+        message.style.fontFamily = "'Press Start 2P', cursive";
+        message.style.fontSize = "12px";
+        message.style.background = "rgba(0, 0, 0, 0.7)";
+        message.style.padding = "10px";
+        message.style.borderRadius = "5px";
+        message.style.zIndex = "100";
+        document.body.appendChild(message);
+        
+        setTimeout(() => {
+            if (message.parentNode) {
+                message.parentNode.removeChild(message);
+            }
+        }, 5000);
+    }
+
+    splashScreen.addEventListener('click', startDemo);
 
     function resizeDisplayCanvas() {
         displayCanvas.width = window.innerWidth;
@@ -233,6 +305,8 @@ document.addEventListener("DOMContentLoaded", function () {
         initStarfield(); // Initialize the starfield
         initCRTEffect(); // Initialize the optimized CRT effect
     }
+
+    let isRendering = false;
 
     function update() {
         time += 0.05;
@@ -1044,10 +1118,12 @@ document.addEventListener("DOMContentLoaded", function () {
     fontObserver.load().then(function () {
         initAudio(); // Initialize audio system
         restartDemo(); // Ensure the demo only starts after the font is loaded
-        render(); // Start the render loop
+        // Don't automatically start rendering - wait for splash screen click
     }).catch(function (error) {
         console.error('Font failed to load:', error);
-        // Optionally handle fallback or retry logic here
+        // If font fails to load, start anyway with default font
+        initAudio();
+        restartDemo(); 
     });
 });
 
