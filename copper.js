@@ -215,6 +215,21 @@ document.addEventListener("DOMContentLoaded", function () {
     let copperSpeed = 2.0;
     let flashOpacity = 0;
     let activeDirection = Directions.NONE;
+    
+    // New variable for number of bars with default value
+    let numCopperBars = 40;
+    
+    // Load preferred bar count from localStorage if available
+    try {
+        const savedBars = localStorage.getItem('copperBarsCount');
+        if (savedBars) {
+            numCopperBars = parseInt(savedBars, 10);
+            // Ensure it's within valid range
+            numCopperBars = Math.min(120, Math.max(4, numCopperBars));
+        }
+    } catch (e) {
+        console.warn("Could not access localStorage:", e);
+    }
 
     let font_width, font_height, baseline_offset;
     const fontSize = 48; // Consistent font size
@@ -914,29 +929,77 @@ document.addEventListener("DOMContentLoaded", function () {
         offscreenCtx.fillText(instructions, instructionX - offscreenCtx.measureText(instructions).width / 2, offscreenCanvas.height - 30);
     }
 
+    // Helper function to adjust and save copper bar count
+    function adjustCopperBarCount(increase) {
+        if (increase) {
+            numCopperBars = Math.min(120, numCopperBars + 10);
+        } else {
+            numCopperBars = Math.max(4, numCopperBars - 10);
+        }
+        
+        // Save to localStorage
+        try {
+            localStorage.setItem('copperBarsCount', numCopperBars.toString());
+        } catch (e) {
+            console.warn("Could not save to localStorage:", e);
+        }
+        
+        // Show feedback message with current bar count
+        showBarCountMessage();
+    }
+    
+    // Function to display current bar count as feedback
+    function showBarCountMessage() {
+        const message = document.createElement('div');
+        message.textContent = `Copper Bars: ${numCopperBars}`;
+        message.style.position = "absolute";
+        message.style.top = "50px";
+        message.style.left = "50%";
+        message.style.transform = "translateX(-50%)";
+        message.style.color = "#0ff";
+        message.style.fontFamily = "'Press Start 2P', cursive";
+        message.style.fontSize = "14px";
+        message.style.background = "rgba(0, 0, 0, 0.7)";
+        message.style.padding = "10px";
+        message.style.borderRadius = "5px";
+        message.style.zIndex = "100";
+        document.body.appendChild(message);
+        
+        setTimeout(() => {
+            if (message.parentNode) {
+                message.parentNode.removeChild(message);
+            }
+        }, 1500);
+    }
+
     function drawCopperBars() {
-        let barHeight = 7; // Reduced from 15 to 7 to make bars smaller
-        let numBars = 40; // Increased from 20 to 40
-        let barSpacing = 1; // Kept the same spacing
-        let centerY = offscreenCanvas.height / 2 - (numBars * (barHeight + barSpacing) / 2);
+        // Calculate bar height based on the number of bars to fit in the same space
+        const totalAvailableSpace = offscreenCanvas.height * 0.7; // Use 70% of screen height
+        const barSpacing = 1;
+        const totalBarSpace = totalAvailableSpace - (numCopperBars * barSpacing);
+        const barHeight = Math.max(1, Math.floor(totalBarSpace / numCopperBars));
+        
+        let centerY = offscreenCanvas.height / 2 - (numCopperBars * (barHeight + barSpacing) / 2);
         let defaultBarWidth = offscreenCanvas.width; // Default full width
         
-        for (let i = 0; i < numBars; i++) {
+        // Calculate color distribution to maintain consistent gradient across different bar counts
+        // This ensures we get a full color spectrum regardless of the number of bars
+        const colorStep = 360 / numCopperBars;
+        const colorOffset = time * 10 % 360; // Time-based offset for animation
+        
+        for (let i = 0; i < numCopperBars; i++) {
             // Remove the sine wave movement (vertical bouncing)
             let yOffset = 0;
             let barWidth = defaultBarWidth;
             
             // Apply audio reactivity if audio is playing
             if (isAudioPlaying && audioData) {
-                // Map the bar index to a frequency bin
-                const binIndex = Math.floor((i / numBars) * (audioAnalyser.frequencyBinCount / 2));
+                // Map the bar index to a frequency bin with better distribution across frequency spectrum
+                const binIndex = Math.floor((i / numCopperBars) * (audioAnalyser.frequencyBinCount / 2));
                 
                 // Only add audio-based amplitude (no sine wave)
-                const audioAmplitude = audioData[binIndex] / 255 * 20; // Scale to reasonable value (reduced from 30 to 20 for smaller bars)
+                const audioAmplitude = audioData[binIndex] / 255 * 10; // Scale to reasonable value
                 yOffset = audioAmplitude;
-                
-                // Dynamically adjust bar height based on audio
-                barHeight = 7; // Base height reduced from 15 to 7
                 
                 // Adjust bar width based on frequency amplitude like a spectrometer
                 const widthScale = audioData[binIndex] / 255; // 0-1 scale based on audio amplitude
@@ -944,14 +1007,17 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             let yPosition = centerY + i * (barHeight + barSpacing);
-            let hue = (time * 10 + i * 3) % 360; // Changed from i * 5 to i * 3 for more color variation across 40 bars
+            
+            // Calculate hue based on position in the spectrum and time
+            // Use a consistent gradient distribution regardless of bar count
+            let hue = (colorOffset + i * colorStep) % 360;
             
             // Make colors more vibrant with audio
             let saturation = 100;
             let lightness = 50;
             
             if (isAudioPlaying && audioData) {
-                const binIndex = Math.floor((i / numBars) * (audioAnalyser.frequencyBinCount / 2));
+                const binIndex = Math.floor((i / numCopperBars) * (audioAnalyser.frequencyBinCount / 2));
                 // Adjust saturation based on audio intensity
                 saturation = 80 + (audioData[binIndex] / 255) * 20;
                 // Adjust lightness based on audio intensity
@@ -961,41 +1027,52 @@ document.addEventListener("DOMContentLoaded", function () {
             // Calculate x-position to center the bar
             let xPosition = 0;
             if (isAudioPlaying && audioData) {
-                const binIndex = Math.floor((i / numBars) * (audioAnalyser.frequencyBinCount / 2));
+                const binIndex = Math.floor((i / numCopperBars) * (audioAnalyser.frequencyBinCount / 2));
                 const widthScale = audioData[binIndex] / 255;
                 barWidth = defaultBarWidth * (0.3 + 0.7 * widthScale);
                 xPosition = (offscreenCanvas.width - barWidth) / 2;
             }
             
-            // Create symmetrical gradient (center-out instead of left-to-right)
+            // Use a consistent approach for gradients regardless of bar height
+            
+            // Vertical gradient (top to bottom)
             let gradient = offscreenCtx.createLinearGradient(
                 xPosition + barWidth/2, yPosition,       // Top center
                 xPosition + barWidth/2, yPosition + barHeight  // Bottom center
             );
             
+            // Create more pronounced gradient edges for smaller bars
+            const edgeDarkening = Math.min(30, 15 + (15 / Math.min(barHeight, 10))); // Adjust darkness based on bar height
+            
             // Brighter in center, darker on edges
-            gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - 30)}%)`);  // Darker top
-            gradient.addColorStop(0.5, `hsl(${hue}, ${saturation}%, ${lightness}%)`);                   // Bright middle
-            gradient.addColorStop(1, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - 30)}%)`);  // Darker bottom
+            gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%)`);  // Darker top
+            gradient.addColorStop(0.5, `hsl(${hue}, ${saturation}%, ${lightness}%)`);                              // Bright middle
+            gradient.addColorStop(1, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%)`);  // Darker bottom
             
             offscreenCtx.fillStyle = gradient;
             offscreenCtx.fillRect(xPosition, yPosition, barWidth, barHeight);
             
-            // Create horizontal symmetrical gradient as well
-            let horizontalGradient = offscreenCtx.createLinearGradient(
-                xPosition, yPosition + barHeight/2,              // Left middle
-                xPosition + barWidth/2, yPosition + barHeight/2, // Center middle
-                xPosition + barWidth, yPosition + barHeight/2    // Right middle
-            );
-            
-            // Brighter in center, darker on edges
-            horizontalGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${Math.max(10, lightness - 30)}%, 0.7)`);  // Darker left
-            horizontalGradient.addColorStop(0.5, `hsla(${hue}, ${saturation}%, ${lightness}%, 0.7)`);                   // Bright center
-            horizontalGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${Math.max(10, lightness - 30)}%, 0.7)`);  // Darker right
-            
-            // Apply the horizontal gradient as an overlay
-            offscreenCtx.fillStyle = horizontalGradient;
-            offscreenCtx.fillRect(xPosition, yPosition, barWidth, barHeight);
+            // Horizontal gradient overlay (left to right)
+            // Only apply this for bars that are tall enough to show the effect
+            if (barHeight >= 2) {
+                let horizontalGradient = offscreenCtx.createLinearGradient(
+                    xPosition, yPosition + barHeight/2,              // Left middle
+                    xPosition + barWidth/2, yPosition + barHeight/2, // Center middle
+                    xPosition + barWidth, yPosition + barHeight/2    // Right middle
+                );
+                
+                // Adjust horizontal gradient opacity based on bar height
+                const horizontalOpacity = Math.min(0.7, 0.4 + (barHeight / 20));
+                
+                // Brighter in center, darker on edges
+                horizontalGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%, ${horizontalOpacity})`);  // Darker left
+                horizontalGradient.addColorStop(0.5, `hsla(${hue}, ${saturation}%, ${lightness}%, ${horizontalOpacity})`);                              // Bright center
+                horizontalGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%, ${horizontalOpacity})`);  // Darker right
+                
+                // Apply the horizontal gradient as an overlay
+                offscreenCtx.fillStyle = horizontalGradient;
+                offscreenCtx.fillRect(xPosition, yPosition, barWidth, barHeight);
+            }
         }
     }
 
@@ -1058,10 +1135,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (isPointInTriangle(x, y, cx, cy, 0, 0, displayCanvas.width, 0)) {
             activeDirection = Directions.TOP;
-            copperSpeed += 0.1;
+            // Increase number of copper bars instead of copper speed
+            adjustCopperBarCount(true);
         } else if (isPointInTriangle(x, y, cx, cy, 0, displayCanvas.height, displayCanvas.width, displayCanvas.height)) {
             activeDirection = Directions.BOTTOM;
-            copperSpeed = Math.max(0.1, copperSpeed - 0.1);
+            // Decrease number of copper bars instead of copper speed
+            adjustCopperBarCount(false);
         } else if (isPointInTriangle(x, y, cx, cy, 0, 0, 0, displayCanvas.height)) {
             activeDirection = Directions.LEFT;
             scrollerSpeed = Math.max(10, scrollerSpeed + 10);
