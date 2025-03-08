@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
     splashScreen.id = 'splash-screen';
     splashScreen.innerHTML = `
         <div class="splash-content">
-            <h1>SYSTEM INITIALISED.</h1>
+            <h1>SYSTEM 1.3 INITIALISED.</h1>
             <div class="crt-text">Click to start</div>
             <div class="scanline"></div>
         </div>
