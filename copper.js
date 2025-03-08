@@ -915,12 +915,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function drawCopperBars() {
-        let barHeight = 15;
-        let numBars = 20;
-        let barSpacing = 1;
+        let barHeight = 7; // Reduced from 15 to 7 to make bars smaller
+        let numBars = 40; // Increased from 20 to 40
+        let barSpacing = 1; // Kept the same spacing
         let centerY = offscreenCanvas.height / 2 - (numBars * (barHeight + barSpacing) / 2);
         let defaultBarWidth = offscreenCanvas.width; // Default full width
-    
+        
         for (let i = 0; i < numBars; i++) {
             // Remove the sine wave movement (vertical bouncing)
             let yOffset = 0;
@@ -932,11 +932,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const binIndex = Math.floor((i / numBars) * (audioAnalyser.frequencyBinCount / 2));
                 
                 // Only add audio-based amplitude (no sine wave)
-                const audioAmplitude = audioData[binIndex] / 255 * 30; // Scale to reasonable value
+                const audioAmplitude = audioData[binIndex] / 255 * 20; // Scale to reasonable value (reduced from 30 to 20 for smaller bars)
                 yOffset = audioAmplitude;
                 
                 // Dynamically adjust bar height based on audio
-                barHeight = 15 ;//+ (audioData[binIndex] / 255);
+                barHeight = 7; // Base height reduced from 15 to 7
                 
                 // Adjust bar width based on frequency amplitude like a spectrometer
                 const widthScale = audioData[binIndex] / 255; // 0-1 scale based on audio amplitude
@@ -944,7 +944,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             let yPosition = centerY + i * (barHeight + barSpacing);
-            let hue = (time * 10 + i * 5) % 360;
+            let hue = (time * 10 + i * 3) % 360; // Changed from i * 5 to i * 3 for more color variation across 40 bars
             
             // Make colors more vibrant with audio
             let saturation = 100;
@@ -969,14 +969,6 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Create symmetrical gradient (center-out instead of left-to-right)
             let gradient = offscreenCtx.createLinearGradient(
-                xPosition + barWidth/2, yPosition,       // Start from center
-                xPosition, yPosition + barHeight/2,      // Left middle
-                xPosition + barWidth, yPosition + barHeight/2, // Right middle
-                xPosition + barWidth/2, yPosition + barHeight  // Bottom center
-            );
-            
-            // Modified gradient to be symmetrical from center out
-            gradient = offscreenCtx.createLinearGradient(
                 xPosition + barWidth/2, yPosition,       // Top center
                 xPosition + barWidth/2, yPosition + barHeight  // Bottom center
             );
