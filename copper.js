@@ -8,6 +8,12 @@ document.addEventListener("DOMContentLoaded", function () {
     splashScreen.innerHTML = `
         <div class="splash-content">
             <h1>SYSTEM 1.3 INITIALISED.</h1>
+            <div class="music-selector">
+                <div class="music-selection-text">SELECT TUNE:</div>
+                <select id="music-select" class="music-select">
+                    <option value="loading">Loading tracks...</option>
+                </select>
+            </div>
             <div class="crt-text">Click to start</div>
             <div class="scanline"></div>
         </div>
@@ -36,9 +42,48 @@ document.addEventListener("DOMContentLoaded", function () {
     
     const splashTitle = splashScreen.querySelector('h1');
     splashTitle.style.fontSize = '32px';
-    splashTitle.style.marginBottom = '40px';
+    splashTitle.style.marginBottom = '20px'; // Reduced from 40px to make space for music selector
     splashTitle.style.color = '#0ff';
     splashTitle.style.textShadow = '0 0 10px #0ff, 0 0 20px #0ff';
+    
+    // Style music selector
+    const musicSelector = splashScreen.querySelector('.music-selector');
+    musicSelector.style.marginBottom = '30px';
+    musicSelector.style.fontFamily = "'Press Start 2P', cursive";
+    musicSelector.style.color = '#0ff';
+    
+    // IMPORTANT: Stop click events on the music selector from propagating to the splash screen
+    musicSelector.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+    
+    const musicSelectionText = splashScreen.querySelector('.music-selection-text');
+    musicSelectionText.style.fontSize = '14px';
+    musicSelectionText.style.marginBottom = '10px';
+    musicSelectionText.style.textShadow = '0 0 5px #0ff';
+    
+    const musicSelect = splashScreen.querySelector('#music-select');
+    musicSelect.style.fontFamily = "'Press Start 2P', cursive";
+    musicSelect.style.fontSize = '12px';
+    musicSelect.style.backgroundColor = '#000';
+    musicSelect.style.color = '#0ff';
+    musicSelect.style.border = '2px solid #0ff';
+    musicSelect.style.padding = '8px';
+    musicSelect.style.borderRadius = '4px';
+    musicSelect.style.outline = 'none';
+    musicSelect.style.boxShadow = '0 0 10px #0ff';
+    musicSelect.style.width = '300px';
+    musicSelect.style.cursor = 'pointer';
+    musicSelect.style.textAlign = 'center';
+    
+    // Add hover effect
+    musicSelect.addEventListener('mouseover', () => {
+        musicSelect.style.backgroundColor = '#003333';
+    });
+    
+    musicSelect.addEventListener('mouseout', () => {
+        musicSelect.style.backgroundColor = '#000';
+    });
     
     const clickText = splashScreen.querySelector('.crt-text');
     clickText.style.fontSize = '20px';
@@ -86,32 +131,150 @@ document.addEventListener("DOMContentLoaded", function () {
     let audioData;
     let isAudioPlaying = false;
     let audioElement;
+    let selectedMusicURL = 'tracks/default.mp3'; // Default fallback
     let isDemoStarted = false;
+    const musicFilesCache = {}; // Cache for music file listings
+    
+    // Track control variables
+    let volume = 0.7; // Default volume (0-1)
+    let currentTrackIndex = 0;
+    let musicFiles = []; // Will hold the list of available tracks
+    let trackProgressInterval = null; // For updating the progress bar
 
-    // Starfield settings
-    const starCount = 300;
-    const stars = [];
+    // Load music files from the local JSON file
+    async function fetchMusicFiles() {
+        try {
+            // Try to fetch the tracks.json file
+            const response = await fetch('tracks.json');
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch tracks.json: ${response.status} ${response.statusText}`);
+            }
+            
+            const tracksList = await response.json();
+            
+            // Format the tracks into the needed structure
+            const musicFiles = tracksList.map(track => {
+                return {
+                    url: `${track.url}`,
+                    name: track.name
+                };
+            });
+            
+            // Cache this list for future use
+            try {
+                localStorage.setItem('localMusicFiles', JSON.stringify(musicFiles));
+            } catch (err) {
+                console.warn('Failed to cache music files:', err);
+            }
+            
+            populateMusicSelect(musicFiles);
+            
+        } catch (error) {
+            console.error('Error loading tracks from JSON:', error);
+            
+            // Try fallback to localStorage if available
+            if (localStorage.getItem('localMusicFiles')) {
+                console.log('Using cached track list from localStorage');
+                const cachedData = JSON.parse(localStorage.getItem('localMusicFiles'));
+                populateMusicSelect(cachedData);
+                return;
+            }
+            
+            // Last resort fallback
+            console.log('Using hardcoded fallback track list');
+            const fallbackFiles = [
+                { url: 'tracks/Syndicate_Intro.mp3', name: 'Syndicate Intro' },
+                { url: 'tracks/Xenon_2_Megablast.mp3', name: 'Xenon 2 Megablast' },
+                { url: 'tracks/Zool_2.mp3', name: 'Zool 2' }
+            ];
+            populateMusicSelect(fallbackFiles);
+        }
+    }
 
-    // CRT effect settings
-    const crtEffect = {
-        enabled: true,
-        scanlineOpacity: 0.1,
-        scanlineSpacing: 4,
-        curvature: 0.08,
-        vignette: 0.3,
-        noise: 0.03,
-        scanlineSpeed: 0.5,
-        scanlineOffset: 0,
-        // Audio reactivity parameters
-        bassCurvatureImpact: 0.05,
-        midRangeScanlineImpact: 0.15,
-        highFreqNoiseImpact: 0.1,
-        overallReactivity: 1.0,
-        // Smoothing parameters for transitions
-        lastBassImpact: 0.0,
-        lastMidImpact: 0.0,
-        lastHighImpact: 0.0
-    };
+    // Populate the music selection dropdown
+    function populateMusicSelect(files) {
+        // Store music files globally for track controls
+        musicFiles = files;
+        
+        const select = document.getElementById('music-select');
+        if (!select) return; // In case the splash screen is already removed
+        
+        select.innerHTML = ''; // Clear loading option
+        
+        // Add a special "No Music" option
+        const noMusicOption = document.createElement('option');
+        noMusicOption.value = 'none';
+        noMusicOption.textContent = '-- No Music --';
+        select.appendChild(noMusicOption);
+        
+        // Sort music files alphabetically
+        musicFiles.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Add each music file as an option
+        musicFiles.forEach((file, index) => {
+            const option = document.createElement('option');
+            option.value = file.url;
+            option.textContent = file.name;
+            
+            // If we have a previously saved selection, select it
+            try {
+                const savedMusic = localStorage.getItem('selectedMusic');
+                if (savedMusic && savedMusic === file.url) {
+                    option.selected = true;
+                    selectedMusicURL = file.url;
+                } 
+                // Otherwise, select a random track as default (but only if there was no saved selection)
+                else if (!savedMusic && index === Math.floor(Math.random() * musicFiles.length)) {
+                    option.selected = true;
+                    selectedMusicURL = file.url;
+                }
+            } catch (e) {
+                // If random track is selected, update selectedMusicURL
+                if (index === Math.floor(Math.random() * musicFiles.length)) {
+                    option.selected = true;
+                    selectedMusicURL = file.url;
+                }
+            }
+            
+            select.appendChild(option);
+        });
+        
+        // Update selected music URL when dropdown changes
+        select.addEventListener('change', function(event) {
+            // Stop propagation to prevent triggering splash screen click
+            event.stopPropagation();
+            
+            selectedMusicURL = this.value;
+            
+            // Save selection to localStorage
+            try {
+                localStorage.setItem('selectedMusic', selectedMusicURL);
+            } catch (e) {
+                console.warn('Could not save music selection to localStorage:', e);
+            }
+        });
+        
+        // Prevent dropdown clicks from propagating to splash screen
+        select.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+        
+        // Try to load the saved volume from localStorage
+        try {
+            const savedVolume = localStorage.getItem('musicVolume');
+            if (savedVolume !== null) {
+                volume = parseFloat(savedVolume);
+                // Ensure volume is within valid range
+                volume = Math.max(0, Math.min(1, volume));
+            }
+        } catch (e) {
+            console.warn("Could not load saved volume", e);
+        }
+    }
+    
+    // Start loading music list as soon as possible
+    fetchMusicFiles();
 
     // Initialize audio system
     function initAudio() {
@@ -120,8 +283,13 @@ document.addEventListener("DOMContentLoaded", function () {
         audioAnalyser.fftSize = 256;
         audioData = new Uint8Array(audioAnalyser.frequencyBinCount);
         
-        audioElement = new Audio('music.mp3');
+        // Create audio element but don't set src yet
+        audioElement = new Audio();
         audioElement.loop = true;
+        audioElement.volume = volume; // Set initial volume
+        
+        // Add timeupdate event handler to update progress bar
+        audioElement.addEventListener('timeupdate', updateTrackProgress);
         
         // Set up audio source immediately
         audioSource = audioContext.createMediaElementSource(audioElement);
@@ -131,10 +299,224 @@ document.addEventListener("DOMContentLoaded", function () {
         // Do not autoplay - wait for splash screen click
         console.log("Audio ready, waiting for user interaction");
     }
+    
+    // Function to update the progress bar during playback
+    function updateTrackProgress() {
+        if (!audioElement || !isAudioPlaying) return;
+        
+        const progressBar = document.getElementById('track-progress-bar');
+        if (!progressBar) return;
+        
+        // Calculate progress percentage
+        const progress = (audioElement.currentTime / audioElement.duration) * 100 || 0;
+        progressBar.style.width = `${progress}%`;
+        
+        // Update time display if available
+        const timeDisplay = document.getElementById('track-time-display');
+        if (timeDisplay) {
+            const currentTime = formatTime(audioElement.currentTime);
+            const totalTime = formatTime(audioElement.duration);
+            timeDisplay.textContent = `${currentTime} / ${totalTime}`;
+        }
+    }
+    
+    // Helper function to format time as MM:SS
+    function formatTime(timeInSeconds) {
+        if (isNaN(timeInSeconds)) return '00:00';
+        const minutes = Math.floor(timeInSeconds / 60);
+        const seconds = Math.floor(timeInSeconds % 60);
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Function to change tracks
+    function changeTrack(direction) {
+        if (!audioElement || musicFiles.length === 0) return;
+        
+        // Find the current index
+        let currentIndex = musicFiles.findIndex(file => file.url === selectedMusicURL);
+        if (currentIndex === -1) currentIndex = 0;
+        
+        // Calculate new index
+        let newIndex;
+        if (direction === 'next') {
+            newIndex = (currentIndex + 1) % musicFiles.length;
+        } else if (direction === 'prev') {
+            newIndex = (currentIndex - 1 + musicFiles.length) % musicFiles.length;
+        } else {
+            return;
+        }
+        
+        // Update selected track
+        selectedMusicURL = musicFiles[newIndex].url;
+        
+        // Save selection to localStorage
+        try {
+            localStorage.setItem('selectedMusic', selectedMusicURL);
+        } catch (e) {
+            console.warn('Could not save music selection to localStorage:', e);
+        }
+        
+        // Update audio if playing
+        if (audioElement) {
+            const wasPlaying = !audioElement.paused;
+            audioElement.src = selectedMusicURL;
+            audioElement.crossOrigin = 'anonymous';
+            
+            if (wasPlaying) {
+                audioElement.play()
+                    .then(() => {
+                        isAudioPlaying = true;
+                        showTrackNotification(musicFiles[newIndex].name);
+                        // Reset progress bar
+                        updateTrackProgress();
+                    })
+                    .catch(error => {
+                        console.error("Error changing track:", error);
+                    });
+            } else {
+                showTrackNotification(musicFiles[newIndex].name);
+                // Reset progress bar even when not playing
+                updateTrackProgress();
+            }
+        }
+    }
+    
+    // Function to adjust volume
+    function adjustVolume(change) {
+        if (!audioElement) return;
+        
+        // Update volume (ensure it stays between 0-1)
+        volume = Math.max(0, Math.min(1, volume + change));
+        audioElement.volume = volume;
+        
+        // Save volume to localStorage
+        try {
+            localStorage.setItem('musicVolume', volume.toString());
+        } catch (e) {
+            console.warn('Could not save volume to localStorage:', e);
+        }
+        
+        // Show volume indicator
+        showVolumeIndicator();
+    }
+    
+    // Function to display volume indicator
+    function showVolumeIndicator() {
+        // Remove existing indicator if present
+        const existingIndicator = document.getElementById('volume-indicator');
+        if (existingIndicator) {
+            document.body.removeChild(existingIndicator);
+        }
+        
+        const indicator = document.createElement('div');
+        indicator.id = 'volume-indicator';
+        
+        // Create visual volume bar
+        const volumeBarContainer = document.createElement('div');
+        volumeBarContainer.style.width = '150px';
+        volumeBarContainer.style.height = '15px';
+        volumeBarContainer.style.border = '2px solid #0ff';
+        volumeBarContainer.style.position = 'relative';
+        volumeBarContainer.style.marginTop = '10px';
+        
+        const volumeBar = document.createElement('div');
+        volumeBar.style.width = `${volume * 100}%`;
+        volumeBar.style.height = '100%';
+        volumeBar.style.backgroundColor = '#0ff';
+        volumeBar.style.position = 'absolute';
+        volumeBar.style.top = '0';
+        volumeBar.style.left = '0';
+        volumeBar.style.transition = 'width 0.2s';
+        
+        volumeBarContainer.appendChild(volumeBar);
+        
+        // Main container
+        indicator.innerHTML = `<div>Volume: ${Math.round(volume * 100)}%</div>`;
+        indicator.appendChild(volumeBarContainer);
+        
+        Object.assign(indicator.style, {
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: '#0ff',
+            padding: '15px',
+            borderRadius: '8px',
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: '12px',
+            textAlign: 'center',
+            zIndex: '1000',
+            boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
+            border: '1px solid #0ff'
+        });
+        
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                // Fade out animation
+                indicator.style.transition = 'opacity 0.5s';
+                indicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (indicator.parentNode) {
+                        document.body.removeChild(indicator);
+                    }
+                }, 500);
+            }
+        }, 1500);
+    }
+    
+    // Function to display track change notification
+    function showTrackNotification(trackName) {
+        const existingNotif = document.getElementById('track-notification');
+        if (existingNotif) {
+            document.body.removeChild(existingNotif);
+        }
+        
+        const notification = document.createElement('div');
+        notification.id = 'track-notification';
+        notification.innerHTML = `
+            <div>Now Playing:</div>
+            <div style="margin-top: 8px; font-size: 14px; color: #0ff;">${trackName}</div>
+        `;
+        
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '80px', // Position below volume indicator
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: '#fff',
+            padding: '15px',
+            borderRadius: '8px',
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: '12px',
+            textAlign: 'center',
+            zIndex: '1000',
+            boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)',
+            border: '1px solid #0ff'
+        });
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.transition = 'opacity 0.5s';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        document.body.removeChild(notification);
+                    }
+                }, 500);
+            }
+        }, 2500);
+    }
 
     function startDemo() {
         if (isDemoStarted) return;
         isDemoStarted = true;
+        window.isDemoStarted = true; // Make it available to window
         
         // Fade out and remove splash screen
         splashScreen.style.opacity = '0';
@@ -142,8 +524,15 @@ document.addEventListener("DOMContentLoaded", function () {
             document.body.removeChild(splashScreen);
         }, 800);
         
-        // Start audio
-        if (audioContext && audioElement) {
+        // Start audio if a track is selected and it's not "none"
+        if (audioContext && audioElement && selectedMusicURL !== 'none') {
+            // Set the audio source now
+            audioElement.src = selectedMusicURL;
+            audioElement.crossOrigin = 'anonymous';
+            
+            // Set volume from the stored value
+            audioElement.volume = volume;
+            
             audioContext.resume().then(() => {
                 audioElement.play()
                     .then(() => {
@@ -155,7 +544,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         showAudioErrorMessage();
                     });
             });
+        } else {
+            console.log("No music selected or music disabled");
         }
+        
+        // Add transport controls overlay
+        createTransportControls();
         
         // Make sure canvas is properly sized
         resizeDisplayCanvas();
@@ -190,7 +584,41 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 5000);
     }
 
-    splashScreen.addEventListener('click', startDemo);
+    // Modify the splashScreen click handler to avoid starting when clicking on music selector
+    splashScreen.addEventListener('click', function(event) {
+        // Check if the click was directly on the splash screen and not on its children
+        if (event.target === splashScreen || event.target.classList.contains('crt-text') ||
+            event.target.classList.contains('splash-content')) {
+            startDemo();
+        }
+    });
+    
+    // Add a clear "Start" button to make it obvious how to start the demo
+    const startButton = document.createElement('button');
+    startButton.textContent = 'START DEMO';
+    startButton.style.marginTop = '20px';
+    startButton.style.padding = '10px 20px';
+    startButton.style.backgroundColor = '#0ff';
+    startButton.style.color = 'black';
+    startButton.style.border = 'none';
+    startButton.style.borderRadius = '4px';
+    startButton.style.fontFamily = "'Press Start 2P', cursive";
+    startButton.style.fontSize = '16px';
+    startButton.style.cursor = 'pointer';
+    startButton.style.boxShadow = '0 0 10px #0ff';
+    
+    startButton.addEventListener('mouseover', () => {
+        startButton.style.backgroundColor = '#00cccc';
+    });
+    
+    startButton.addEventListener('mouseout', () => {
+        startButton.style.backgroundColor = '#0ff';
+    });
+    
+    startButton.addEventListener('click', startDemo);
+    
+    // Insert after the CRT text
+    splashScreen.querySelector('.crt-text').after(startButton);
 
     function resizeDisplayCanvas() {
         displayCanvas.width = window.innerWidth;
@@ -237,6 +665,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const frequency = 0.05;
     const amplitude = 50;
+
+    // Define starfield variables
+    const starCount = 300; // Number of stars to create
+    const stars = []; // Array to hold star objects
+    
+    // Define CRT effect object with default values
+    const crtEffect = {
+        enabled: true,
+        scanlineOpacity: 0.1,
+        scanlineSpacing: 4,
+        curvature: 0.08,
+        vignette: 0.3,
+        noise: 0.03,
+        scanlineSpeed: 0.5,
+        scanlineOffset: 0,
+        // Audio reactivity parameters
+        bassCurvatureImpact: 0.05,
+        midRangeScanlineImpact: 0.15,
+        highFreqNoiseImpact: 0.1,
+        overallReactivity: 1.0,
+        // Smoothing parameters for transitions
+        lastBassImpact: 0.0,
+        lastMidImpact: 0.0,
+        lastHighImpact: 0.0
+    };
 
     let y_offset;
     let characterBitmap = {}; // Define the characterBitmap object here
@@ -302,6 +755,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function initStarfield() {
+        // Clear stars array in case this is called multiple times
+        stars.length = 0;
+        
         for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: Math.random() * offscreenCanvas.width,
@@ -1173,15 +1629,507 @@ document.addEventListener("DOMContentLoaded", function () {
                 handleInteraction(displayCanvas.width - 1, cy);
                 break;
             case 'ArrowUp':
-                handleInteraction(cx, 1);
+                // If pressing Shift+ArrowUp, increase volume instead
+                if (event.shiftKey) {
+                    adjustVolume(0.05); // Increase volume by 5%
+                    event.preventDefault();
+                } else {
+                    handleInteraction(cx, 1);
+                }
                 break;
             case 'ArrowDown':
-                handleInteraction(cx, displayCanvas.height - 1);
+                // If pressing Shift+ArrowDown, decrease volume instead
+                if (event.shiftKey) {
+                    adjustVolume(-0.05); // Decrease volume by 5%
+                    event.preventDefault();
+                } else {
+                    handleInteraction(cx, displayCanvas.height - 1);
+                }
+                break;
+            case 'm':
+            case 'M':
+                if (isDemoStarted && audioElement) {
+                    toggleMusicSelector();
+                }
+                break;
+            // Add next track shortcut
+            case 'n':
+            case 'N':
+                if (isDemoStarted && audioElement) {
+                    changeTrack('next');
+                }
+                break;
+            // Add previous track shortcut
+            case 'p':
+            case 'P':
+                if (isDemoStarted && audioElement) {
+                    changeTrack('prev');
+                }
                 break;
             default:
                 return;
         }
     });
+
+    // Create and show a floating music selector during the demo
+    function toggleMusicSelector() {
+        // Remove existing selector if it's already open
+        const existingSelector = document.getElementById('floating-music-selector');
+        if (existingSelector) {
+            document.body.removeChild(existingSelector);
+            return;
+        }
+        
+        // Create a new floating music selector
+        const floatingSelector = document.createElement('div');
+        floatingSelector.id = 'floating-music-selector';
+        floatingSelector.innerHTML = `
+            <div class="selector-header">SELECT MUSIC (ESC TO CLOSE)</div>
+            <select id="floating-music-select" class="music-select"></select>
+        `;
+        
+        // Style the floating selector
+        Object.assign(floatingSelector.style, {
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            border: '2px solid #0ff',
+            padding: '20px',
+            zIndex: '1000',
+            boxShadow: '0 0 20px #0ff',
+            borderRadius: '8px',
+            fontFamily: "'Press Start 2P', cursive",
+            color: '#0ff',
+            textAlign: 'center'
+        });
+        
+        document.body.appendChild(floatingSelector);
+        
+        // Style the header and select
+        const header = floatingSelector.querySelector('.selector-header');
+        Object.assign(header.style, {
+            marginBottom: '15px',
+            fontSize: '14px',
+            textShadow: '0 0 5px #0ff'
+        });
+        
+        const select = floatingSelector.querySelector('#floating-music-select');
+        Object.assign(select.style, {
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: '12px',
+            backgroundColor: '#000',
+            color: '#0ff',
+            border: '2px solid #0ff',
+            padding: '8px',
+            borderRadius: '4px',
+            outline: 'none',
+            boxShadow: '0 0 10px #0ff',
+            width: '300px',
+            cursor: 'pointer'
+        });
+        
+        // Populate the floating music selector
+        try {
+            // Try to fetch the tracks.json file on-demand for the latest tracks
+            fetch('tracks.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to fetch tracks');
+                    return response.json();
+                })
+                .then(tracksList => {
+                    const musicFiles = tracksList.map(track => {
+                        return {
+                            url: `tracks/${track.file}`,
+                            name: track.name
+                        };
+                    });
+                    populateFloatingSelect(select, musicFiles);
+                })
+                .catch(err => {
+                    // If fetch fails, try using cached data
+                    console.error('Error fetching tracks.json for music selector:', err);
+                    if (localStorage.getItem('localMusicFiles')) {
+                        const cachedData = JSON.parse(localStorage.getItem('localMusicFiles'));
+                        populateFloatingSelect(select, cachedData);
+                    } else {
+                        // Last resort fallback
+                        const fallbackFiles = [
+                            { url: 'tracks/Syndicate_Intro.mp3', name: 'Syndicate Intro' },
+                            { url: 'tracks/Xenon_2_Megablast.mp3', name: 'Xenon 2 Megablast' },
+                            { url: 'tracks/Zool_2.mp3', name: 'Zool 2' }
+                        ];
+                        populateFloatingSelect(select, fallbackFiles);
+                    }
+                });
+        } catch (e) {
+            console.error('Error setting up music selector:', e);
+            const option = document.createElement('option');
+            option.textContent = 'No music options available';
+            select.appendChild(option);
+        }
+        
+        // Add change handler
+        select.addEventListener('change', function() {
+            const newMusicURL = this.value;
+            if (newMusicURL === 'none') {
+                // Stop current music
+                if (audioElement) {
+                    audioElement.pause();
+                    isAudioPlaying = false;
+                }
+            } else if (audioElement) {
+                // Change to new music
+                const wasPlaying = !audioElement.paused;
+                audioElement.src = newMusicURL;
+                audioElement.crossOrigin = 'anonymous';
+                selectedMusicURL = newMusicURL;
+                
+                if (wasPlaying) {
+                    audioElement.play()
+                        .then(() => {
+                            isAudioPlaying = true;
+                        })
+                        .catch(error => {
+                            console.error("Error changing music:", error);
+                        });
+                }
+            }
+            
+            // Save selection to localStorage
+            try {
+                localStorage.setItem('selectedMusic', newMusicURL);
+            } catch (e) {
+                console.warn('Could not save music selection to localStorage:', e);
+            }
+        });
+        
+        // Add stopPropagation to the click handler to ensure clicks on the select don't bleed through
+        select.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+        
+        // Close on ESC key
+        const escHandler = function(e) {
+            if (e.key === 'Escape') {
+                if (floatingSelector.parentNode) {
+                    document.body.removeChild(floatingSelector);
+                }
+                window.removeEventListener('keydown', escHandler);
+            }
+        };
+        
+        window.addEventListener('keydown', escHandler);
+        
+        // Add transport controls to music selector
+        const transportControls = document.createElement('div');
+        transportControls.className = 'selector-transport';
+        transportControls.innerHTML = `
+            <div style="margin-bottom: 10px; margin-top: 15px;">Volume Control:</div>
+            <div class="volume-controls">
+                <button class="transport-btn" id="volume-down">🔉</button>
+                <div class="volume-bar-container">
+                    <div class="volume-bar" id="volume-level"></div>
+                </div>
+                <button class="transport-btn" id="volume-up">🔊</button>
+            </div>
+            <div style="margin: 15px 0 5px;">Track Progress:</div>
+            <div class="selector-progress-container">
+                <div class="selector-progress-bar" id="selector-progress"></div>
+            </div>
+            <div class="selector-time" id="selector-time">00:00 / 00:00</div>
+            <div style="margin: 15px 0 10px;">Track Navigation:</div>
+            <div class="track-controls">
+                <button class="transport-btn" id="prev-track">◀◀</button>
+                <button class="transport-btn" id="next-track">▶▶</button>
+            </div>
+        `;
+        
+        // Add the controls after the select element
+        select.insertAdjacentElement('afterend', transportControls);
+        
+        // Style the new controls
+        const style = document.createElement('style');
+        style.textContent = `
+            .volume-controls, .track-controls {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            .volume-bar-container {
+                width: 200px;
+                height: 10px;
+                background-color: #003;
+                border: 1px solid #0ff;
+                position: relative;
+            }
+            .volume-bar {
+                height: 100%;
+                background-color: #0ff;
+                width: ${volume * 100}%;
+            }
+            .selector-progress-container {
+                width: 100%;
+                height: 10px;
+                background-color: #003;
+                border-radius: 4px;
+                margin: 5px 0;
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(0, 255, 255, 0.5);
+            }
+            .selector-progress-bar {
+                height: 100%;
+                background-color: #0ff;
+                width: 0%;
+                position: absolute;
+                left: 0;
+                top: 0;
+                transition: width 0.3s;
+            }
+            .selector-time {
+                font-family: 'Press Start 2P', cursive;
+                font-size: 10px;
+                color: #0ff;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+            .transport-btn {
+                background-color: #003;
+                color: #0ff;
+                border: 2px solid #0ff;
+                border-radius: 5px;
+                padding: 5px 10px;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+                font-family: 'Press Start 2P', cursive;
+                min-width: 40px;
+                min-height: 40px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .transport-btn:hover {
+                background-color: #004444;
+            }
+        `;
+        floatingSelector.appendChild(style);
+        
+        // Set up event handlers
+        const volumeDown = floatingSelector.querySelector('#volume-down');
+        const volumeUp = floatingSelector.querySelector('#volume-up');
+        const prevTrack = floatingSelector.querySelector('#prev-track');
+        const nextTrack = floatingSelector.querySelector('#next-track');
+        const volumeBar = floatingSelector.querySelector('#volume-level');
+        
+        // Setup progress bar functionality
+        const progressContainer = floatingSelector.querySelector('.selector-progress-container');
+        const progressBar = floatingSelector.querySelector('#selector-progress');
+        const timeDisplay = floatingSelector.querySelector('#selector-time');
+        
+        // Make progress bar interactive for seeking
+        progressContainer.addEventListener('click', function(e) {
+            if (!audioElement || !isAudioPlaying) return;
+            
+            const rect = this.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            
+            // Seek to the clicked position
+            if (audioElement.duration) {
+                audioElement.currentTime = audioElement.duration * percentage;
+                updateSelectorProgress();
+            }
+        });
+        
+        // Function to update the selector's progress bar
+        function updateSelectorProgress() {
+            if (!audioElement) return;
+            
+            // Update progress bar width
+            const progress = (audioElement.currentTime / audioElement.duration) * 100 || 0;
+            progressBar.style.width = `${progress}%`;
+            
+            // Update time display
+            const currentTime = formatTime(audioElement.currentTime);
+            const totalTime = formatTime(audioElement.duration);
+            timeDisplay.textContent = `${currentTime} / ${totalTime}`;
+        }
+        
+        // Update progress at regular intervals while the selector is open
+        const progressInterval = setInterval(updateSelectorProgress, 1000);
+        
+        // Initial progress update
+        updateSelectorProgress();
+        
+        volumeDown.addEventListener('click', function() {
+            adjustVolume(-0.05);
+            volumeBar.style.width = `${volume * 100}%`;
+        });
+        
+        volumeUp.addEventListener('click', function() {
+            adjustVolume(0.05);
+            volumeBar.style.width = `${volume * 100}%`;
+        });
+        
+        prevTrack.addEventListener('click', function() {
+            changeTrack('prev');
+            updateSelectedOption();
+            updateSelectorProgress();
+        });
+        
+        nextTrack.addEventListener('click', function() {
+            changeTrack('next');
+            updateSelectedOption();
+            updateSelectorProgress();
+        });
+        
+        // Update the selected option in the dropdown when changing tracks
+        function updateSelectedOption() {
+            const options = select.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === selectedMusicURL) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+       
+
+    }
+
+    // Create floating transport controls for volume and track navigation
+    function createTransportControls() {
+        const controls = document.createElement('div');
+        controls.id = 'transport-controls';
+        controls.innerHTML = `
+            <div class="transport-button prev-track" title="Previous Track (P key)">◀◀</div>
+            <div class="transport-button volume-down" title="Volume Down (Shift+Down key)">🔉</div>
+            <div class="transport-button volume-up" title="Volume Up (Shift+Up key)">🔊</div>
+            <div class="transport-button next-track" title="Next Track (N key)">▶▶</div>
+            <div class="track-progress-container">
+                <div id="track-progress-bar"></div>
+            </div>
+            <div id="track-time-display">00:00 / 00:00</div>
+        `;
+        
+        // Style the controls
+        Object.assign(controls.style, {
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '15px',
+            padding: '10px',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            borderRadius: '10px',
+            border: '1px solid #0ff',
+            boxShadow: '0 0 15px rgba(0, 255, 255, 0.5)',
+            zIndex: '100',
+            opacity: '0.2', // Start mostly transparent
+            transition: 'opacity 0.3s',
+            flexWrap: 'wrap', // Allow wrapping on small screens
+            justifyContent: 'center',
+            alignItems: 'center',
+            maxWidth: '90%'
+        });
+        
+        // Style the buttons
+        const buttons = controls.querySelectorAll('.transport-button');
+        buttons.forEach(button => {
+            Object.assign(button.style, {
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(0, 40, 40, 0.8)',
+                color: '#0ff',
+                borderRadius: '8px',
+                border: '2px solid #0ff',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: '18px',
+                cursor: 'pointer',
+                boxShadow: '0 0 5px #0ff',
+                userSelect: 'none'
+            });
+        });
+        
+        // Style the progress bar container
+        const progressContainer = controls.querySelector('.track-progress-container');
+        Object.assign(progressContainer.style, {
+            width: '100%',
+            height: '8px',
+            backgroundColor: 'rgba(0, 30, 30, 0.8)',
+            borderRadius: '4px',
+            margin: '10px 0 5px 0',
+            position: 'relative',
+            overflow: 'hidden',
+            border: '1px solid rgba(0, 255, 255, 0.3)'
+        });
+        
+        // Style the progress bar
+        const progressBar = controls.querySelector('#track-progress-bar');
+        Object.assign(progressBar.style, {
+            width: '0%',
+            height: '100%',
+            backgroundColor: '#0ff',
+            position: 'absolute',
+            left: '0',
+            top: '0',
+            transition: 'width 0.3s'
+        });
+        
+        // Style the time display
+        const timeDisplay = controls.querySelector('#track-time-display');
+        Object.assign(timeDisplay.style, {
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: '10px',
+            color: '#0ff',
+            textAlign: 'center',
+            width: '100%',
+            marginTop: '3px'
+        });
+        
+        // Make progress bar interactive - seek functionality
+        progressContainer.addEventListener('click', function(e) {
+            if (!audioElement || !isAudioPlaying) return;
+            
+            const rect = this.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            
+            // Seek to the clicked position
+            if (audioElement.duration) {
+                audioElement.currentTime = audioElement.duration * percentage;
+                updateTrackProgress();
+            }
+        });
+        
+        // Add hover effects to transport controls
+        controls.addEventListener('mouseenter', () => {
+            controls.style.opacity = '1';
+        });
+        
+        controls.addEventListener('mouseleave', () => {
+            controls.style.opacity = '0.2';
+        });
+        
+        // Add click handlers
+        controls.querySelector('.prev-track').addEventListener('click', () => changeTrack('prev'));
+        controls.querySelector('.next-track').addEventListener('click', () => changeTrack('next'));
+        controls.querySelector('.volume-up').addEventListener('click', () => adjustVolume(0.05));
+        controls.querySelector('.volume-down').addEventListener('click', () => adjustVolume(-0.05));
+        
+        document.body.appendChild(controls);
+        
+        // Initial update of the progress bar
+        updateTrackProgress();
+    }
 
     // Use FontFaceObserver to ensure the font is fully loaded
     const fontObserver = new FontFaceObserver('Press Start 2P');
@@ -1207,4 +2155,138 @@ function isPointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
     const c = 0.5 * Math.abs((px * (y3 - y1) + x3 * (y1 - py) + x1 * (py - y3)));
     
     return Math.abs(area - (a + b + c)) < 0.001;
+}
+
+/**
+ * Copper.js - MP3 player module
+ * Loads tracks from tracks.json and plays them using their S3 URLs
+ */
+
+class CopperPlayer {
+    constructor() {
+        this.tracks = [];
+        this.currentTrackIndex = 0;
+        this.audioPlayer = new Audio();
+        this.isPlaying = false;
+    }
+
+    /**
+     * Initialize the player by loading tracks from JSON
+     */
+    async init() {
+        try {
+            const response = await fetch('tracks.json');
+            if (!response.ok) {
+                throw new Error('Failed to load tracks.json');
+            }
+            this.tracks = await response.json();
+            console.log(`Loaded ${this.tracks.length} tracks`);
+            
+            // Set up event listeners
+            this.audioPlayer.addEventListener('ended', () => this.playNext());
+            
+            return true;
+        } catch (error) {
+            console.error('Error initializing player:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Play a track by index
+     * @param {number} index - Track index to play
+     */
+    play(index = null) {
+        if (index !== null && index >= 0 && index < this.tracks.length) {
+            this.currentTrackIndex = index;
+        }
+        
+        const track = this.tracks[this.currentTrackIndex];
+        if (!track) return;
+        
+        // Use the S3 URL for playing the track
+        this.audioPlayer.src = track.url;
+        this.audioPlayer.crossOrigin = 'anonymous';
+        this.audioPlayer.play()
+            .then(() => {
+                this.isPlaying = true;
+                this.triggerEvent('trackchange', track);
+            })
+            .catch(error => {
+                console.error('Error playing track:', error);
+            });
+    }
+
+    /**
+     * Pause the current playback
+     */
+    pause() {
+        this.audioPlayer.pause();
+        this.isPlaying = false;
+    }
+
+    /**
+     * Toggle play/pause
+     */
+    togglePlay() {
+        if (this.isPlaying) {
+            this.pause();
+        } else {
+            this.play();
+        }
+    }
+
+    /**
+     * Play next track
+     */
+    playNext() {
+        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
+        this.play();
+    }
+
+    /**
+     * Play previous track
+     */
+    playPrevious() {
+        this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
+        this.play();
+    }
+
+    /**
+     * Get all tracks
+     * @returns {Array} List of tracks
+     */
+    getTracks() {
+        return this.tracks;
+    }
+
+    /**
+     * Get current track info
+     * @returns {Object} Current track data
+     */
+    getCurrentTrack() {
+        return this.tracks[this.currentTrackIndex];
+    }
+
+    /**
+     * Helper to trigger custom events
+     */
+    triggerEvent(name, data) {
+        document.dispatchEvent(new CustomEvent('copper:' + name, { detail: data }));
+    }
+}
+
+// Export as global or module
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = CopperPlayer;
+} else {
+    window.CopperPlayer = CopperPlayer;
+}
+
+// Initialize player automatically when included in browser
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.copper = new CopperPlayer();
+        window.copper.init();
+    });
 }
