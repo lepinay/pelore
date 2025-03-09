@@ -869,8 +869,8 @@ document.addEventListener("DOMContentLoaded", function () {
         
         drawStarfield(); // Draw starfield first (background)
         drawCopperBars();
-        drawScrollingText();
-        drawInstructions();
+        // drawScrollingText();
+        // drawInstructions();
 
         displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
         displayCtx.drawImage(offscreenCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
