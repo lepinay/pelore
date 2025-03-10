@@ -2,10 +2,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const displayCanvas = document.getElementById('demoCanvas');
     const displayCtx = displayCanvas.getContext('2d');
 
-    // Create splash screen
+    // Create splash screen with tunnel canvas
     const splashScreen = document.createElement('div');
     splashScreen.id = 'splash-screen';
     splashScreen.innerHTML = `
+        <canvas id="tunnel-canvas"></canvas>
         <div class="splash-content">
             <h1>SYSTEM 1.3 INITIALISED.</h1>
             <div class="music-selector">
@@ -19,6 +20,273 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     `;
     document.body.appendChild(splashScreen);
+    
+    // Initialize WebGL tunnel effect
+    const tunnelCanvas = document.getElementById('tunnel-canvas');
+    let gl = tunnelCanvas.getContext('webgl') || tunnelCanvas.getContext('experimental-webgl');
+    
+    if (!gl) {
+        console.warn("WebGL not supported. Falling back to canvas rendering.");
+        gl = null;
+    }
+    
+    // Style the tunnel canvas to cover the full screen
+    tunnelCanvas.style.position = 'absolute';
+    tunnelCanvas.style.top = '0';
+    tunnelCanvas.style.left = '0';
+    tunnelCanvas.style.width = '100%';
+    tunnelCanvas.style.height = '100%';
+    tunnelCanvas.style.zIndex = '-1';
+    
+    // Tunnel effect parameters
+    const tunnelEffect = {
+        animationId: null,
+        time: 0,
+        speed: 0.03,
+        running: false,
+        // Shader parameters
+        program: null,
+        buffer: null,
+        uniforms: {},
+        // Tunnel appearance
+        colorSpeed: 0.3,
+        zoomSpeed: 0.5,
+        tunnelRadius: 0.5
+    };
+    
+    // Set canvas dimensions
+    function resizeTunnelCanvas() {
+        tunnelCanvas.width = window.innerWidth;
+        tunnelCanvas.height = window.innerHeight;
+        
+        if (gl) {
+            gl.viewport(0, 0, tunnelCanvas.width, tunnelCanvas.height);
+        }
+    }
+    
+    window.addEventListener('resize', resizeTunnelCanvas);
+    resizeTunnelCanvas();
+    
+    // Initialize WebGL shader program for the tunnel effect
+    function initTunnelShader() {
+        if (!gl) return false;
+        
+        // Vertex shader source
+        const vertexShaderSource = `
+            attribute vec2 position;
+            void main() {
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+        
+        // Fragment shader source - this is where the tunnel magic happens
+        const fragmentShaderSource = `
+            precision mediump float;
+            
+            uniform float time;
+            uniform vec2 resolution;
+            uniform float tunnelRadius;
+            uniform float colorSpeed;
+            uniform float zoomSpeed;
+            
+            #define PI 3.14159265358979323846
+            #define TWO_PI 6.28318530718
+            
+            // Helper function to create seamless patterns
+            vec3 seamlessPattern(float angle, float depth) {
+                // Normalize angle to 0-1 range for perfect wrapping
+                angle = fract(angle / TWO_PI);
+                
+                // Create seamless color gradients with careful phase adjustments
+                float r = sin(angle * TWO_PI * 3.0 + time * colorSpeed) * 0.5 + 0.5;
+                float g = sin(depth * 5.0 + time * colorSpeed * 0.7) * 0.5 + 0.5;
+                float b = sin((angle * 4.0 + depth * 3.0) * TWO_PI + time * colorSpeed * 1.3) * 0.5 + 0.5;
+                
+                // Add subtle waves that are also seamless
+                r += sin(depth * 8.0) * 0.1;
+                g += sin(angle * TWO_PI * 6.0) * 0.1;
+                b += sin(depth * 10.0 + angle * TWO_PI * 4.0) * 0.1;
+                
+                return vec3(r, g, b);
+            }
+            
+            void main() {
+                // Normalized coordinates (centered, -1 to 1)
+                vec2 uv = (gl_FragCoord.xy / resolution.xy) * 2.0 - 1.0;
+                
+                // Correct for aspect ratio
+                uv.x *= resolution.x / resolution.y;
+                
+                // Calculate polar coordinates for tunnel effect
+                float radius = length(uv);
+                float angle = atan(uv.y, uv.x); // Range: -PI to PI
+                
+                // Ensure angle is in 0-2PI range for seamless wrapping
+                if (angle < 0.0) angle += TWO_PI;
+                
+                // Create tunnel depth illusion with inverse radius
+                float depth = tunnelRadius / max(0.01, radius);
+                
+                // Animate movement along the tunnel with perfect looping
+                depth = fract(depth + time * zoomSpeed);
+                
+                // Animate rotation of the tunnel
+                float rotationAngle = angle + time * 0.2;
+                
+                // Generate seamless colors
+                vec3 color = seamlessPattern(rotationAngle, depth);
+                
+                // Make edge of tunnel darker for a vignette effect
+                float edge = 1.0 - smoothstep(0.5, 1.5, radius);
+                
+                // Final color with edge darkening
+                gl_FragColor = vec4(color * edge, 1.0);
+            }
+        `;
+        
+        // Create and compile shaders
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, vertexShaderSource);
+        gl.compileShader(vertexShader);
+        
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            console.error('Vertex shader compile error:', gl.getShaderInfoLog(vertexShader));
+            return false;
+        }
+        
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, fragmentShaderSource);
+        gl.compileShader(fragmentShader);
+        
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            console.error('Fragment shader compile error:', gl.getShaderInfoLog(fragmentShader));
+            return false;
+        }
+        
+        // Create shader program
+        tunnelEffect.program = gl.createProgram();
+        gl.attachShader(tunnelEffect.program, vertexShader);
+        gl.attachShader(tunnelEffect.program, fragmentShader);
+        gl.linkProgram(tunnelEffect.program);
+        
+        if (!gl.getProgramParameter(tunnelEffect.program, gl.LINK_STATUS)) {
+            console.error('Shader program link error:', gl.getProgramInfoLog(tunnelEffect.program));
+            return false;
+        }
+        
+        // Create fullscreen quad
+        const vertices = new Float32Array([
+            -1.0, -1.0,
+             1.0, -1.0,
+            -1.0,  1.0,
+             1.0,  1.0
+        ]);
+        
+        tunnelEffect.buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, tunnelEffect.buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        
+        // Store uniform locations
+        tunnelEffect.uniforms = {
+            time: gl.getUniformLocation(tunnelEffect.program, 'time'),
+            resolution: gl.getUniformLocation(tunnelEffect.program, 'resolution'),
+            tunnelRadius: gl.getUniformLocation(tunnelEffect.program, 'tunnelRadius'),
+            colorSpeed: gl.getUniformLocation(tunnelEffect.program, 'colorSpeed'),
+            zoomSpeed: gl.getUniformLocation(tunnelEffect.program, 'zoomSpeed')
+        };
+        
+        return true;
+    }
+    
+    // Render the tunnel effect using WebGL shaders
+    function renderTunnelShader() {
+        if (!gl || !tunnelEffect.program) return;
+        
+        gl.useProgram(tunnelEffect.program);
+        
+        // Update uniforms
+        gl.uniform1f(tunnelEffect.uniforms.time, tunnelEffect.time);
+        gl.uniform2f(tunnelEffect.uniforms.resolution, tunnelCanvas.width, tunnelCanvas.height);
+        gl.uniform1f(tunnelEffect.uniforms.tunnelRadius, tunnelEffect.tunnelRadius);
+        gl.uniform1f(tunnelEffect.uniforms.colorSpeed, tunnelEffect.colorSpeed);
+        gl.uniform1f(tunnelEffect.uniforms.zoomSpeed, tunnelEffect.zoomSpeed);
+        
+        // Set up position attribute
+        gl.bindBuffer(gl.ARRAY_BUFFER, tunnelEffect.buffer);
+        const positionLocation = gl.getAttribLocation(tunnelEffect.program, 'position');
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        
+        // Draw fullscreen quad
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    
+    // Start tunnel effect
+    function startTunnelEffect() {
+        if (tunnelEffect.running) return;
+        
+        // Initialize shader if we have WebGL
+        let useShader = false;
+        if (gl) {
+            useShader = initTunnelShader();
+        }
+        
+        tunnelEffect.running = true;
+        tunnelEffect.time = 0;
+        
+        // Animation loop
+        function animate() {
+            if (!tunnelEffect.running) return;
+            
+            // Update time
+            tunnelEffect.time += tunnelEffect.speed;
+            
+            // Render using WebGL shader
+            if (useShader) {
+                renderTunnelShader();
+            }
+            
+            tunnelEffect.animationId = requestAnimationFrame(animate);
+        }
+        
+        animate();
+    }
+    
+    // Stop tunnel effect - improved version
+    function stopTunnelEffect() {
+        if (!tunnelEffect.running) return;
+        
+        tunnelEffect.running = false;
+        
+        // Cancel animation frame to stop rendering
+        if (tunnelEffect.animationId) {
+            cancelAnimationFrame(tunnelEffect.animationId);
+            tunnelEffect.animationId = null;
+        }
+        
+        // Clean up WebGL resources
+        if (gl && tunnelEffect.program) {
+            // Delete buffers
+            if (tunnelEffect.buffer) {
+                gl.deleteBuffer(tunnelEffect.buffer);
+                tunnelEffect.buffer = null;
+            }
+            
+            // Delete shaders and program
+            const shaders = gl.getAttachedShaders(tunnelEffect.program);
+            if (shaders) {
+                shaders.forEach(shader => gl.deleteShader(shader));
+            }
+            gl.deleteProgram(tunnelEffect.program);
+            tunnelEffect.program = null;
+            
+            // Reset uniforms
+            tunnelEffect.uniforms = {};
+        }
+    }
+    
+    // Start tunnel effect when page loads
+    startTunnelEffect();
     
     // Style the splash screen
     splashScreen.style.position = 'fixed';
@@ -518,9 +786,18 @@ document.addEventListener("DOMContentLoaded", function () {
         isDemoStarted = true;
         window.isDemoStarted = true; // Make it available to window
         
+        // Stop tunnel effect BEFORE fading out splash screen
+        stopTunnelEffect();
+        
         // Fade out and remove splash screen
         splashScreen.style.opacity = '0';
         setTimeout(() => {
+            // Make sure WebGL context is released before removing the canvas
+            if (gl) {
+                gl.getExtension('WEBGL_lose_context')?.loseContext();
+                gl = null;
+            }
+            
             document.body.removeChild(splashScreen);
         }, 800);
         

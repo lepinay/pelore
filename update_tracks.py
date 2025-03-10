@@ -5,7 +5,7 @@ import urllib.parse
 
 def update_tracks_json():
     # S3 bucket base URL
-    s3_base_url = "https://modplayer.s3.us-east-1.amazonaws.com/tracks/"
+    s3_base_url = "/tracks/"
     
     # Directory where MP3 files are located
     directory = os.path.join(os.path.dirname(os.path.abspath(__file__)),"tracks")
