@@ -7,13 +7,21 @@ import TransportControls from './components/TransportControls.js';
 import FontFaceObserver from 'https://cdn.jsdelivr.net/npm/fontfaceobserver@2.3.0/+esm';
 
 class DemoApp {
+  private mainCanvas: HTMLCanvasElement;
+  private audioSystem: AudioSystem;
+  private visualizer: Visualizer;
+  private crtEffect: CRTEffect;
+  private splashScreen: SplashScreen;
+  private transportControls: TransportControls;
+  private tunnelEffect: TunnelEffect;
+
   constructor() {
     this.initDOM();
     this.initComponents();
     this.initFontLoading();
   }
 
-  initDOM() {
+  private initDOM(): void {
     // Main visualization canvas
     this.mainCanvas = document.createElement('canvas');
     this.mainCanvas.id = 'demoCanvas';
@@ -32,13 +40,12 @@ class DemoApp {
     // this.tunnelCanvas.style.zIndex = '-1';
   }
 
-  initComponents() {
+  private initComponents(): void {
     // Initialize components
     this.audioSystem = new AudioSystem();
-    
   }
 
-  async initFontLoading() {
+  private async initFontLoading(): Promise<void> {
     try {
       const font = new FontFaceObserver('Press Start 2P');
       await font.load();
@@ -49,7 +56,7 @@ class DemoApp {
     }
   }
 
-  async start() {
+  private async start(): Promise<void> {
     try {
       await this.audioSystem.loadMusicTracks();
       this.visualizer = new Visualizer(this.mainCanvas, this.audioSystem);
@@ -71,13 +78,13 @@ class DemoApp {
     }
   }
 
-  setupSplashScreenHandlers() {
-    this.splashScreen.onStart((selectedTrack) => {
+  private setupSplashScreenHandlers(): void {
+    this.splashScreen.onStart((selectedTrack: string) => {
       this.startDemo(selectedTrack);
     });
   }
 
-  startDemo(selectedTrack) {
+  private startDemo(selectedTrack: string): void {
     // Transition sequence
     this.tunnelEffect.stop();
     this.splashScreen.hide();
@@ -93,8 +100,8 @@ class DemoApp {
     this.startMainLoop();
   }
 
-  startMainLoop() {
-    const update = () => {
+  private startMainLoop(): void {
+    const update = (): void => {
       if (!this.visualizer.isRendering) return;
 
       // Get audio data for effects
@@ -112,23 +119,23 @@ class DemoApp {
     update();
   }
 
-  initEventListeners() {
+  private initEventListeners(): void {
     window.addEventListener('resize', () => this.handleResize());
     this.handleResize();
   }
 
-  handleResize() {
+  private handleResize(): void {
     // Coordinate all resize handlers
     this.tunnelEffect.handleResize();
     this.visualizer.resize();
     // this.crtEffect.handleResize();
   }
 
-  cleanup() {
+  public cleanup(): void {
     // Proper cleanup when needed
     this.visualizer.stop();
     this.audioSystem.pause();
-    this.crtEffect.disable();
+    // this.crtEffect.disable();
   }
 }
 
@@ -137,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const app = new DemoApp();
   
   // Expose for debugging
-  window.demoApp = app;
+  (window as any).demoApp = app;
 });
 
 export default DemoApp; 
