@@ -1,10 +1,10 @@
 class SplashScreen {
-  constructor() {
+  constructor(audioSystem) {
     this.element = document.createElement('div');
     this.isVisible = true;
     this.musicSelect = null;
     this.selectedTrackURL = 'none';
-    this.tracks = [];
+    this.audioSystem = audioSystem;
     this.musicSelector = null;
     this.startCallback = null;
     this.initDOM();
@@ -126,25 +126,10 @@ class SplashScreen {
     });
   }
 
-  async initMusicSelector() {
+  initMusicSelector() {
     this.musicSelect = this.element.querySelector('#music-select');
-    this.tracks = await this.loadMusicTracks();
+    this.tracks = this.audioSystem.getTracks();
     this.populateMusicSelect();
-  }
-
-  async loadMusicTracks() {
-    try {
-      const response = await fetch('tracks.json');
-      if (!response.ok) throw new Error('Failed to load tracks');
-      const data = await response.json();
-      return data.map(track => ({
-        url: track.url,
-        name: track.name
-      }));
-    } catch (error) {
-      console.error('Error loading tracks:', error);
-      return [];
-    }
   }
 
   populateMusicSelect() {

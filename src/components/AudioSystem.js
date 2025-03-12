@@ -35,19 +35,22 @@ class AudioSystem {
     this.audioElement.addEventListener('ended', () => this.playNext());
   }
 
-  async loadTracks() {
+  async loadMusicTracks() {
     try {
-      // Fetch track list from server or use hardcoded list
-      this.tracks = [
-        { name: 'Demo Track 1', url: 'assets/music/track1.mp3' },
-        { name: 'Demo Track 2', url: 'assets/music/track2.mp3' },
-        // Add more tracks as needed
-      ];
-      return this.tracks;
+      const response = await fetch('tracks.json');
+      if (!response.ok) throw new Error('Failed to load tracks');
+      const data = await response.json();
+      this.tracks = data.map(track => ({
+        url: track.url,
+        name: track.name
+      }));
     } catch (error) {
-      console.error('Failed to load tracks:', error);
-      return [];
+      console.error('Error loading tracks:', error);
     }
+  }
+
+  getTracks() {
+    return this.tracks;
   }
 
   cacheTracks() {

@@ -155,6 +155,12 @@ class CRTEffect {
     const width = this.demoCanvas.width;
     const height = this.demoCanvas.height;
 
+    if (gl.canvas.width !== this.demoCanvas.width || gl.canvas.height !== this.demoCanvas.height) {
+        gl.canvas.width = this.demoCanvas.width;
+        gl.canvas.height = this.demoCanvas.height;
+        gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+    }
+
     // Update texture
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -280,11 +286,11 @@ class CRTEffect {
     return a + (b - a) * t;
   }
 
-  handleResize() {
-    if (this.gl) {
-      this.gl.viewport(0, 0, this.demoCanvas.width, this.demoCanvas.height);
-    }
-  }
+  // handleResize() {
+  //   if (this.gl) {
+  //     this.gl.viewport(0, 0, this.demoCanvas.width, this.demoCanvas.height);
+  //   }
+  // }
 }
 
 export default CRTEffect; 

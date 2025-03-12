@@ -3,6 +3,7 @@ class TransportControls {
     this.audioSystem = audioSystem;
     this.audioIsPlaying = false;
     this.audioElement = audioSystem.audioElement;
+    this.audioElement.addEventListener('timeupdate', this.updateTrackProgress);
     
     // Create the UI elements
     this.createTransportControls();
@@ -125,10 +126,10 @@ class TransportControls {
     });
     
     // Add click handlers
-    controls.querySelector('.prev-track').addEventListener('click', () => changeTrack('prev'));
-    controls.querySelector('.next-track').addEventListener('click', () => changeTrack('next'));
-    controls.querySelector('.volume-up').addEventListener('click', () => adjustVolume(0.05));
-    controls.querySelector('.volume-down').addEventListener('click', () => adjustVolume(-0.05));
+    controls.querySelector('.prev-track').addEventListener('click', () => this.changeTrack('prev'));
+    controls.querySelector('.next-track').addEventListener('click', () => this.changeTrack('next'));
+    controls.querySelector('.volume-up').addEventListener('click', () => this.adjustVolume(0.05));
+    controls.querySelector('.volume-down').addEventListener('click', () => this.adjustVolume(-0.05));
     
     document.body.appendChild(controls);
     
@@ -152,6 +153,58 @@ class TransportControls {
         const currentTime = formatTime(this.audioElement.currentTime);
         const totalTime = formatTime(this.audioElement.duration);
         timeDisplay.textContent = `${currentTime} / ${totalTime}`;
+    }
+  }
+
+  changeTrack(direction) {
+    if (!this.audioElement ||  this.audioSystem.getTracks().length === 0) return;
+    
+    // Find the current index
+    let currentIndex =  this.audioSystem.getTracks().findIndex(file => file.url === this.audioElement.src);
+    if (currentIndex === -1) currentIndex = 0;
+    
+    // Calculate new index
+    let newIndex;
+    if (direction === 'next') {
+        newIndex = (currentIndex + 1) %  this.audioSystem.getTracks().length;
+    } else if (direction === 'prev') {
+        newIndex = (currentIndex - 1 +  this.audioSystem.getTracks().length) %  this.audioSystem.getTracks().length;
+    } else {
+        return;
+    }
+    
+    // Update selected track
+    let selectedMusicURL =  this.audioSystem.getTracks()[newIndex].url;
+    
+    // Save selection to localStorage
+    try {
+        localStorage.setItem('selectedMusic', selectedMusicURL);
+    } catch (e) {
+        console.warn('Could not save music selection to localStorage:', e);
+    }
+    
+    // Update audio if playing
+    if (this.audioElement) {
+        const wasPlaying = !this.audioElement.paused;
+        this.audioElement.src = selectedMusicURL;
+        this.audioElement.crossOrigin = 'anonymous';
+        
+        if (wasPlaying) {
+          this.audioElement.play()
+                .then(() => {
+                    this.isAudioPlaying = true;
+                    showTrackNotification(this.audioSystem.getTracks()[newIndex].name);
+                    // Reset progress bar
+                    updateTrackProgress();
+                })
+                .catch(error => {
+                    console.error("Error changing track:", error);
+                });
+        } else {
+            showTrackNotification(this.audioSystem.getTracks()[newIndex].name);
+            // Reset progress bar even when not playing
+            updateTrackProgress();
+        }
     }
   }
   

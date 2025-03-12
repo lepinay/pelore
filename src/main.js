@@ -11,7 +11,6 @@ class DemoApp {
     this.initDOM();
     this.initComponents();
     this.initFontLoading();
-    this.initEventListeners();
   }
 
   initDOM() {
@@ -35,16 +34,7 @@ class DemoApp {
 
   initComponents() {
     // Initialize components
-    this.splashScreen = new SplashScreen();
-    this.tunnelEffect = new TunnelEffect(this.splashScreen.element);
     this.audioSystem = new AudioSystem();
-    this.visualizer = new Visualizer(this.mainCanvas, this.audioSystem);
-    this.crtEffect = new CRTEffect(this.mainCanvas);
-    this.transportControls = new TransportControls(this.audioSystem);
-
-    // Initial setup
-    this.splashScreen.addScanlineAnimation();
-    this.splashScreen.show();
     
   }
 
@@ -52,7 +42,7 @@ class DemoApp {
     try {
       const font = new FontFaceObserver('Press Start 2P');
       await font.load();
-      this.start();
+      await this.start();
     } catch (error) {
       console.warn('Font loading error:', error);
       this.start();
@@ -61,9 +51,21 @@ class DemoApp {
 
   async start() {
     try {
-      await this.audioSystem.loadTracks();
+      await this.audioSystem.loadMusicTracks();
+      this.visualizer = new Visualizer(this.mainCanvas, this.audioSystem);
+      this.crtEffect = new CRTEffect(this.mainCanvas);
+      this.splashScreen = new SplashScreen(this.audioSystem);
+      // Initial setup
+      this.splashScreen.addScanlineAnimation();
+      this.splashScreen.show();
+
+      this.transportControls = new TransportControls(this.audioSystem);
+      this.tunnelEffect = new TunnelEffect(this.splashScreen.element);
       this.tunnelEffect.start();
       this.setupSplashScreenHandlers();
+
+      this.initEventListeners();
+
     } catch (error) {
       console.error('Initialization failed:', error);
     }
