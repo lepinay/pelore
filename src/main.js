@@ -121,7 +121,7 @@ class DemoApp {
     // Coordinate all resize handlers
     this.tunnelEffect.handleResize();
     this.visualizer.resize();
-    this.crtEffect.handleResize();
+    // this.crtEffect.handleResize();
   }
 
   cleanup() {

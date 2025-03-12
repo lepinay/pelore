@@ -1776,8 +1776,6 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Create more pronounced gradient edges for smaller bars
             const edgeDarkening = Math.min(30, 15 + (15 / Math.min(barHeight, 10))); // Adjust darkness based on bar height
-            
-            // Brighter in center, darker on edges
             gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%)`);  // Darker top
             gradient.addColorStop(0.5, `hsl(${hue}, ${saturation}%, ${lightness}%)`);                              // Bright middle
             gradient.addColorStop(1, `hsl(${hue}, ${saturation}%, ${Math.max(10, lightness - edgeDarkening)}%)`);  // Darker bottom

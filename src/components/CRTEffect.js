@@ -158,7 +158,7 @@ class CRTEffect {
     if (gl.canvas.width !== this.demoCanvas.width || gl.canvas.height !== this.demoCanvas.height) {
         gl.canvas.width = this.demoCanvas.width;
         gl.canvas.height = this.demoCanvas.height;
-        gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     }
 
     // Update texture
