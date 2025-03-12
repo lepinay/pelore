@@ -146,11 +146,24 @@ class Visualizer {
     const width = this.offscreenCanvas.width * (0.3 + 0.7 * amplitude);
     const x = (this.offscreenCanvas.width - width) / 2;
 
+    let saturation = 100;
+    let lightness = 50;
+    let audioData = this.audioSystem.getAudioData();
+    let isAudioPlaying = this.audioSystem.isPlaying;
+
+    if (isAudioPlaying && audioData && this.audioSystem.analyser && this.audioSystem.analyser.frequencyBinCount) {
+      const binIndex = Math.floor((index / this.params.numCopperBars) * (this.audioSystem.analyser.frequencyBinCount / 2));
+      // Adjust saturation based on audio intensity
+      saturation = 80 + (audioData[binIndex] / 255) * 20;
+      // Adjust lightness based on audio intensity
+      lightness = 40 + (audioData[binIndex] / 255) * 30;
+  }
+
     // Vertical gradient
     const gradient = this.offscreenCtx.createLinearGradient(x, y, x, y + barHeight);
-    gradient.addColorStop(0, `hsl(${hue}, 80%, 30%)`);
-    gradient.addColorStop(0.5, `hsl(${hue}, 100%, 50%)`);
-    gradient.addColorStop(1, `hsl(${hue}, 80%, 30%)`);
+    gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    gradient.addColorStop(0.5, `hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    gradient.addColorStop(1, `hsl(${hue}, ${saturation}%, ${lightness}%)`);
     
     this.offscreenCtx.fillStyle = gradient;
     this.offscreenCtx.fillRect(x, y, width, barHeight);
