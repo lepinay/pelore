@@ -3,7 +3,12 @@ class TransportControls {
     this.audioSystem = audioSystem;
     this.audioIsPlaying = false;
     this.audioElement = audioSystem.audioElement;
-    this.audioElement.addEventListener('timeupdate', this.updateTrackProgress);
+    
+    // Properly bind the method
+    this.updateTrackProgress = this.updateTrackProgress.bind(this);
+    
+    // Make sure we're adding the event listener to the correct element
+    this.audioElement.addEventListener('timeupdate', () => this.updateTrackProgress());
     
     // Create the UI elements
     this.createTransportControls();
@@ -102,17 +107,17 @@ class TransportControls {
     });
     
     // Make progress bar interactive - seek functionality
-    progressContainer.addEventListener('click', function(e) {
-        if (!this.audioElement || !this.isAudioPlaying) return;
+    progressContainer.addEventListener('click', (e) => {
+        if (!this.audioElement || !this.audioIsPlaying) return;
         
-        const rect = this.getBoundingClientRect();
+        const rect = progressContainer.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const percentage = clickX / rect.width;
         
         // Seek to the clicked position
         if (this.audioElement.duration) {
             this.audioElement.currentTime = this.audioElement.duration * percentage;
-            updateTrackProgress();
+            this.updateTrackProgress();
         }
     });
     
@@ -128,8 +133,8 @@ class TransportControls {
     // Add click handlers
     controls.querySelector('.prev-track').addEventListener('click', () => this.changeTrack('prev'));
     controls.querySelector('.next-track').addEventListener('click', () => this.changeTrack('next'));
-    controls.querySelector('.volume-up').addEventListener('click', () => this.adjustVolume(0.05));
-    controls.querySelector('.volume-down').addEventListener('click', () => this.adjustVolume(-0.05));
+    controls.querySelector('.volume-up').addEventListener('click', () => this.audioSystem.adjustVolume(0.05));
+    controls.querySelector('.volume-down').addEventListener('click', () => this.audioSystem.adjustVolume(-0.05));
     
     document.body.appendChild(controls);
     
@@ -138,8 +143,6 @@ class TransportControls {
   }
 
   updateTrackProgress() {
-    if (!this.audioElement || !this.isAudioPlaying) return;
-    
     const progressBar = document.getElementById('track-progress-bar');
     if (!progressBar) return;
     
@@ -150,65 +153,51 @@ class TransportControls {
     // Update time display if available
     const timeDisplay = document.getElementById('track-time-display');
     if (timeDisplay) {
-        const currentTime = formatTime(this.audioElement.currentTime);
-        const totalTime = formatTime(this.audioElement.duration);
+        const currentTime = this.formatTime(this.audioElement.currentTime);
+        const totalTime = this.formatTime(this.audioElement.duration);
         timeDisplay.textContent = `${currentTime} / ${totalTime}`;
     }
+  }
+
+  // Add the missing formatTime utility function
+  formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return "00:00";
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    
+    const formattedMinutes = String(minutes).padStart(2, '0');
+    const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+    
+    return `${formattedMinutes}:${formattedSeconds}`;
   }
 
   changeTrack(direction) {
     if (!this.audioElement ||  this.audioSystem.getTracks().length === 0) return;
     
     // Find the current index
-    let currentIndex =  this.audioSystem.getTracks().findIndex(file => file.url === this.audioElement.src);
+    let currentIndex =  this.audioSystem.getTracks().findIndex(file => file.url === this.audioSystem.selectedTrackURL);
     if (currentIndex === -1) currentIndex = 0;
     
     // Calculate new index
     let newIndex;
     if (direction === 'next') {
-        newIndex = (currentIndex + 1) %  this.audioSystem.getTracks().length;
+        this.audioSystem.playNext();
     } else if (direction === 'prev') {
-        newIndex = (currentIndex - 1 +  this.audioSystem.getTracks().length) %  this.audioSystem.getTracks().length;
+        this.audioSystem.playPrevious();
     } else {
         return;
     }
     
-    // Update selected track
-    let selectedMusicURL =  this.audioSystem.getTracks()[newIndex].url;
-    
-    // Save selection to localStorage
-    try {
-        localStorage.setItem('selectedMusic', selectedMusicURL);
-    } catch (e) {
-        console.warn('Could not save music selection to localStorage:', e);
-    }
-    
-    // Update audio if playing
-    if (this.audioElement) {
-        const wasPlaying = !this.audioElement.paused;
-        this.audioElement.src = selectedMusicURL;
-        this.audioElement.crossOrigin = 'anonymous';
-        
-        if (wasPlaying) {
-          this.audioElement.play()
-                .then(() => {
-                    this.isAudioPlaying = true;
-                    showTrackNotification(this.audioSystem.getTracks()[newIndex].name);
-                    // Reset progress bar
-                    updateTrackProgress();
-                })
-                .catch(error => {
-                    console.error("Error changing track:", error);
-                });
-        } else {
-            showTrackNotification(this.audioSystem.getTracks()[newIndex].name);
-            // Reset progress bar even when not playing
-            updateTrackProgress();
-        }
-    }
+
   }
   
-
+  // Add the showTrackNotification method that was being called but wasn't defined
+  showTrackNotification(trackName) {
+    // Simple notification implementation
+    console.log(`Now playing: ${trackName}`);
+    // You could implement a proper visual notification here
+  }
 }
 
-export default TransportControls; 
+export default TransportControls;
