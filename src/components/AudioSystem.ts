@@ -1,6 +1,27 @@
+interface Track {
+  url: string;
+  name: string;
+}
+
+interface AudioProgressDetail {
+  currentTime: number;
+  duration: number;
+  progress: number;
+}
+
 class AudioSystem {
+  private audioContext: AudioContext;
+  private analyser: AnalyserNode | null;
+  public audioElement: HTMLAudioElement;
+  private tracks: Track[];
+  private currentTrackIndex: number;
+  private volume: number;
+  private isPlaying: boolean;
+  public selectedTrackURL: string;
+  private audioData: Uint8Array | null;
+
   constructor() {
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.audioContext = new (window.AudioContext)();
     this.analyser = null;
     this.audioElement = new Audio();
     this.tracks = [];
@@ -15,7 +36,7 @@ class AudioSystem {
     this.loadSavedPreferences();
   }
 
-  setupAudio() {
+  private setupAudio(): void {
     // Set initial volume
     this.audioElement.volume = this.volume;
     
@@ -35,11 +56,11 @@ class AudioSystem {
     this.audioElement.addEventListener('ended', () => this.playNext());
   }
 
-  async loadMusicTracks() {
+  public async loadMusicTracks(): Promise<void> {
     try {
       const response = await fetch('tracks.json');
       if (!response.ok) throw new Error('Failed to load tracks');
-      const data = await response.json();
+      const data: Track[] = await response.json();
       this.tracks = data.map(track => ({
         url: track.url,
         name: track.name
@@ -49,11 +70,11 @@ class AudioSystem {
     }
   }
 
-  getTracks() {
+  public getTracks(): Track[] {
     return this.tracks;
   }
 
-  cacheTracks() {
+  public cacheTracks(): void {
     try {
       localStorage.setItem('localMusicFiles', JSON.stringify(this.tracks));
     } catch (error) {
@@ -61,7 +82,7 @@ class AudioSystem {
     }
   }
 
-  loadCachedTracks() {
+  public loadCachedTracks(): boolean {
     try {
       const cached = localStorage.getItem('localMusicFiles');
       if (cached) {
@@ -74,12 +95,12 @@ class AudioSystem {
     return false;
   }
 
-  initEventListeners() {
+  public initEventListeners(): void {
     this.audioElement.addEventListener('timeupdate', () => this.updateTrackProgress());
     this.audioElement.addEventListener('ended', () => this.playNext());
   }
 
-  loadSavedPreferences() {
+  private loadSavedPreferences(): void {
     try {
       const savedVolume = localStorage.getItem('musicVolume');
       if (savedVolume) this.volume = parseFloat(savedVolume);
@@ -91,7 +112,7 @@ class AudioSystem {
     }
   }
 
-  async play(url = this.selectedTrackURL) {
+  public async play(url: string = this.selectedTrackURL): Promise<void> {
     if (url === 'none' || !url) return;
     
     try {
@@ -108,30 +129,30 @@ class AudioSystem {
     }
   }
 
-  pause() {
+  public pause(): void {
     this.audioElement.pause();
     this.isPlaying = false;
   }
 
-  togglePlay() {
+  public togglePlay(): void {
     this.isPlaying ? this.pause() : this.play();
   }
 
-  playNext() {
+  public playNext(): number {
     this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
     this.selectedTrackURL = this.tracks[this.currentTrackIndex].url;
     this.play();
     return this.currentTrackIndex;
   }
 
-  playPrevious() {
+  public playPrevious(): number {
     this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
     this.selectedTrackURL = this.tracks[this.currentTrackIndex].url;
     this.play();
     return this.currentTrackIndex;
   }
 
-  setTrack(trackIndex) {
+  public setTrack(trackIndex: number): void {
     if (typeof trackIndex === 'number' && trackIndex >= 0 && trackIndex < this.tracks.length) {
       this.currentTrackIndex = trackIndex;
       this.selectedTrackURL = this.tracks[trackIndex].url;
@@ -139,27 +160,32 @@ class AudioSystem {
     }
   }
 
-  getCurrentTrack() {
+  public setTrackByURL(url: string): void {
+    const index = this.tracks.findIndex(track => track.url === url);
+    if (index !== -1) this.setTrack(index);
+  }
+
+  public getCurrentTrack(): Track {
     return this.tracks[this.currentTrackIndex];
   }
 
-  getVolume() {
+  public getVolume(): number {
     return this.volume;
   }
 
-  setVolume(value) {
+  public setVolume(value: number): number {
     this.volume = Math.min(1, Math.max(0, value));
     this.audioElement.volume = this.volume;
     localStorage.setItem('musicVolume', this.volume.toString());
     return this.volume;
   }
 
-  adjustVolume(delta) {
-    this.setVolume(this.volume + delta);
+  public adjustVolume(delta: number): number {
+    return this.setVolume(this.volume + delta);
   }
 
-  updateTrackProgress() {
-    const event = new CustomEvent('audioprogress', {
+  public updateTrackProgress(): void {
+    const event = new CustomEvent<AudioProgressDetail>('audioprogress', {
       detail: {
         currentTime: this.audioElement.currentTime,
         duration: this.audioElement.duration,
@@ -169,21 +195,21 @@ class AudioSystem {
     document.dispatchEvent(event);
   }
 
-  getCurrentTime() {
+  public getCurrentTime(): number {
     return this.audioElement.currentTime;
   }
 
-  getDuration() {
+  public getDuration(): number {
     return this.audioElement.duration;
   }
 
-  getAudioData() {
+  public getAudioData(): Uint8Array | null {
     if (this.analyser) {
-      this.analyser.getByteFrequencyData(this.audioData);
+      this.analyser.getByteFrequencyData(this.audioData!);
       return this.audioData;
     }
     return null;
   }
 }
 
-export default AudioSystem; 
+export default AudioSystem;

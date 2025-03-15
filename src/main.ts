@@ -3,8 +3,8 @@ import CRTEffect from './components/CRTEffect.js';
 import AudioSystem from './components/AudioSystem.js';
 import Visualizer from './components/Visualizer.js';
 import SplashScreen from './components/SplashScreen.js';
-import TransportControls from './components/TransportControls.js';
 import FontFaceObserver from 'https://cdn.jsdelivr.net/npm/fontfaceobserver@2.3.0/+esm';
+import TransportControls from './components/TransportControls.js';
 
 class DemoApp {
   private mainCanvas: HTMLCanvasElement;
@@ -91,7 +91,7 @@ class DemoApp {
     
     // Audio setup
     if (selectedTrack !== 'none') {
-      this.audioSystem.setTrack(selectedTrack);
+      this.audioSystem.setTrackByURL(selectedTrack);
       this.audioSystem.play();
     }
 
