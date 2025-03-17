@@ -1,14 +1,44 @@
+import AudioSystem from "./AudioSystem";
+
+interface VisualizerParams {
+  numCopperBars: number;
+  starCount: number;
+  baseAmplitude: number;
+  frequency: number;
+  copperBarSpacing: number;
+  maxCopperBars: number;
+}
+
+interface Star {
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  brightness: number;
+}
+
 class Visualizer {
-  constructor(canvas, audioSystem) {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private audioSystem: AudioSystem;
+  private offscreenCanvas: HTMLCanvasElement;
+  private offscreenCtx: CanvasRenderingContext2D;
+  private params: VisualizerParams;
+  private stars: Star[];
+  public isRendering: boolean;
+  private time: number;
+
+  constructor(canvas: HTMLCanvasElement, audioSystem: AudioSystem) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext('2d')!;
     this.audioSystem = audioSystem;
     this.offscreenCanvas = document.createElement('canvas');
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+    this.offscreenCtx = this.offscreenCanvas.getContext('2d')!;
     
-    // Visualization parameters
+    const savedCopperBars = localStorage.getItem('copperBarsCount');
+    
     this.params = {
-      numCopperBars: 40,
+      numCopperBars: savedCopperBars ? parseInt(savedCopperBars, 10) : 40,
       starCount: 300,
       baseAmplitude: 50,
       frequency: 0.05,
@@ -16,7 +46,6 @@ class Visualizer {
       maxCopperBars: 120
     };
 
-    // State
     this.stars = [];
     this.isRendering = false;
     this.time = 0;
@@ -24,19 +53,19 @@ class Visualizer {
     this.init();
   }
 
-  init() {
+  private init(): void {
     this.setupCanvases();
     this.initStarfield();
     this.setupEventListeners();
   }
 
-  setupCanvases() {
+  private setupCanvases(): void {
     this.offscreenCanvas.width = 800;
     this.offscreenCanvas.height = 600;
     this.resize();
   }
 
-  initStarfield() {
+  private initStarfield(): void {
     this.stars = Array.from({ length: this.params.starCount }, () => ({
       x: Math.random() * this.offscreenCanvas.width,
       y: Math.random() * this.offscreenCanvas.height,
@@ -46,25 +75,25 @@ class Visualizer {
     }));
   }
 
-  resize() {
+  public resize(): void {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
     this.offscreenCanvas.width = this.canvas.width;
     this.offscreenCanvas.height = this.canvas.height;
   }
 
-  start() {
+  public start(): void {
     if (!this.isRendering) {
       this.isRendering = true;
       this.render();
     }
   }
 
-  stop() {
+  public stop(): void {
     this.isRendering = false;
   }
 
-  render() {
+  private render(): void {
     if (!this.isRendering) return;
 
     this.update();
@@ -72,23 +101,23 @@ class Visualizer {
     requestAnimationFrame(() => this.render());
   }
 
-  update() {
+  private update(): void {
     this.time += 0.05;
   }
 
-  draw() {
+  private draw(): void {
     this.clearCanvases();
     this.drawStarfield();
     this.drawCopperBars(this.audioSystem.getAudioData());
     this.copyToDisplay();
   }
 
-  clearCanvases() {
+  private clearCanvases(): void {
     this.offscreenCtx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawStarfield() {
+  private drawStarfield(): void {
     const audioData = this.audioSystem.getAudioData();
     
     this.stars.forEach(star => {
@@ -101,7 +130,6 @@ class Visualizer {
       const size = star.size * (1 + treble);
       const alpha = star.brightness * (1 - (star.z - 0.5) / 3);
 
-      // Draw star glow
       const gradient = this.offscreenCtx.createRadialGradient(
         star.x, star.y, 0, star.x, star.y, size * 2
       );
@@ -111,13 +139,12 @@ class Visualizer {
       this.offscreenCtx.fillStyle = gradient;
       this.offscreenCtx.fillRect(star.x - size*2, star.y - size*2, size*4, size*4);
 
-      // Draw star core
       this.offscreenCtx.fillStyle = `rgba(255,255,255,${alpha})`;
       this.offscreenCtx.fillRect(star.x - size/2, star.y - size/2, size, size);
     });
   }
 
-  drawCopperBars(audioData) {
+  private drawCopperBars(audioData: Uint8Array): void {
     const { width, height } = this.offscreenCanvas;
     const barHeight = this.calculateBarHeight();
     
@@ -129,7 +156,7 @@ class Visualizer {
     }
   }
 
-  calculateBarHeight() {
+  private calculateBarHeight(): number {
     const totalHeight = this.offscreenCanvas.height * 0.7;
     return Math.max(1, 
       (totalHeight - (this.params.numCopperBars * this.params.copperBarSpacing)) 
@@ -137,7 +164,7 @@ class Visualizer {
     );
   }
 
-  drawSingleBar(index, barHeight, amplitude) {
+  private drawSingleBar(index: number, barHeight: number, amplitude: number): void {
     const y = this.offscreenCanvas.height/2 - 
       (this.params.numCopperBars * (barHeight + this.params.copperBarSpacing)) / 2 +
       index * (barHeight + this.params.copperBarSpacing);
@@ -153,13 +180,10 @@ class Visualizer {
 
     if (isAudioPlaying && audioData && this.audioSystem.analyser && this.audioSystem.analyser.frequencyBinCount) {
       const binIndex = Math.floor((index / this.params.numCopperBars) * (this.audioSystem.analyser.frequencyBinCount / 2));
-      // Adjust saturation based on audio intensity
       saturation = 80 + (audioData[binIndex] / 255) * 20;
-      // Adjust lightness based on audio intensity
       lightness = 40 + (audioData[binIndex] / 255) * 30;
   }
 
-    // Vertical gradient
     const gradient = this.offscreenCtx.createLinearGradient(x, y, x, y + barHeight);
     gradient.addColorStop(0, `hsl(${hue}, ${saturation}%, ${lightness}%)`);
     gradient.addColorStop(0.5, `hsl(${hue}, ${saturation}%, ${lightness}%)`);
@@ -169,7 +193,7 @@ class Visualizer {
     this.offscreenCtx.fillRect(x, y, width, barHeight);
   }
 
-  copyToDisplay() {
+  private copyToDisplay(): void {
     this.ctx.drawImage(
       this.offscreenCanvas, 
       0, 0, 
@@ -178,7 +202,7 @@ class Visualizer {
     );
   }
 
-  getFrequencyRange(data, start, end) {
+  private getFrequencyRange(data: Uint8Array, start: number, end: number): number {
     let sum = 0;
     for (let i = start; i < end && i < data.length; i++) {
       sum += data[i];
@@ -186,21 +210,21 @@ class Visualizer {
     return sum / (end - start) / 255;
   }
 
-  resetStar(star) {
+  private resetStar(star: Star): void {
     star.x = this.offscreenCanvas.width;
     star.y = Math.random() * this.offscreenCanvas.height;
   }
 
-  adjustCopperBars(delta) {
+  public adjustCopperBars(delta: number): void {
     this.params.numCopperBars = Math.max(4,
       Math.min(this.params.maxCopperBars, this.params.numCopperBars + delta)
     );
-    localStorage.setItem('copperBarsCount', this.params.numCopperBars);
+    localStorage.setItem('copperBarsCount', this.params.numCopperBars.toString());
   }
 
-  setupEventListeners() {
+  private setupEventListeners(): void {
     window.addEventListener('resize', () => this.resize());
   }
 }
 
-export default Visualizer; 
+export default Visualizer;

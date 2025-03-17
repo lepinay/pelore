@@ -11,12 +11,12 @@ interface AudioProgressDetail {
 
 class AudioSystem {
   private audioContext: AudioContext;
-  private analyser: AnalyserNode | null;
+  public analyser: AnalyserNode | null;
   public audioElement: HTMLAudioElement;
   private tracks: Track[];
   private currentTrackIndex: number;
   private volume: number;
-  private isPlaying: boolean;
+  public isPlaying: boolean;
   public selectedTrackURL: string;
   private audioData: Uint8Array | null;
 
