@@ -1,5 +1,23 @@
+interface TrackInfo {
+  url: string;
+  name: string;
+}
+
+interface AudioSystem {
+  getTracks(): TrackInfo[];
+}
+
 class SplashScreen {
-  constructor(audioSystem) {
+  public element: HTMLDivElement;
+  private isVisible: boolean;
+  private musicSelect: HTMLSelectElement | null;
+  private selectedTrackURL: string;
+  private audioSystem: AudioSystem;
+  private musicSelector: HTMLDivElement | null;
+  private startCallback: ((selectedTrack: string) => void) | null;
+  private tracks: TrackInfo[];
+
+  constructor(audioSystem: AudioSystem) {
     this.element = document.createElement('div');
     this.isVisible = true;
     this.musicSelect = null;
@@ -7,11 +25,12 @@ class SplashScreen {
     this.audioSystem = audioSystem;
     this.musicSelector = null;
     this.startCallback = null;
+    this.tracks = [];
     this.initDOM();
     this.initMusicSelector();
   }
 
-  initDOM() {
+  private initDOM(): void {
     this.element.id = 'splash-screen';
     this.element.innerHTML = `
       <div class="splash-content">
@@ -47,14 +66,12 @@ class SplashScreen {
     });
 
     // Style the splash content
-    Object.assign(this.element.querySelector('.splash-content').style, {
+    Object.assign((this.element.querySelector('.splash-content') as HTMLElement).style, {
       position: 'relative',
       padding: '20px',
       zIndex: '1001'
     });
     
-    
-
     // Add start button
     const startButton = document.createElement('button');
     startButton.textContent = 'START DEMO';
@@ -79,12 +96,12 @@ class SplashScreen {
       startButton.style.backgroundColor = '#0ff';
     });
 
-    this.element.querySelector('.crt-text').after(startButton);
+    this.element.querySelector('.crt-text')!.after(startButton);
 
     // Add this to the initDOM method after creating the musicSelect element
-    const musicSelector = this.element.querySelector('.music-selector');
-    const musicSelect = this.element.querySelector('#music-select');
-    const musicSelectionText = this.element.querySelector('.music-selection-text');
+    const musicSelector = this.element.querySelector('.music-selector') as HTMLDivElement;
+    const musicSelect = this.element.querySelector('#music-select') as HTMLSelectElement;
+    const musicSelectionText = this.element.querySelector('.music-selection-text') as HTMLDivElement;
 
     // Style music selector container
     Object.assign(musicSelector.style, {
@@ -126,13 +143,15 @@ class SplashScreen {
     });
   }
 
-  initMusicSelector() {
+  private initMusicSelector(): void {
     this.musicSelect = this.element.querySelector('#music-select');
     this.tracks = this.audioSystem.getTracks();
     this.populateMusicSelect();
   }
 
-  populateMusicSelect() {
+  private populateMusicSelect(): void {
+    if (!this.musicSelect) return;
+    
     this.musicSelect.innerHTML = '';
     
     // Add "No Music" option
@@ -146,7 +165,7 @@ class SplashScreen {
       const option = document.createElement('option');
       option.value = track.url;
       option.textContent = track.name;
-      this.musicSelect.appendChild(option);
+      this.musicSelect!.appendChild(option);
     });
 
     // Load saved selection
@@ -158,7 +177,7 @@ class SplashScreen {
 
     // Add event listeners
     this.musicSelect.addEventListener('change', (e) => {
-      this.selectedTrackURL = e.target.value;
+      this.selectedTrackURL = (e.target as HTMLSelectElement).value;
       localStorage.setItem('selectedMusic', this.selectedTrackURL);
     });
 
@@ -167,12 +186,12 @@ class SplashScreen {
     });
   }
 
-  show() {
+  public show(): void {
     document.body.appendChild(this.element);
     this.isVisible = true;
   }
 
-  hide() {
+  public hide(): void {
     this.element.style.opacity = '0';
     setTimeout(() => {
       if (this.element.parentNode) {
@@ -182,17 +201,17 @@ class SplashScreen {
     }, 800);
   }
 
-  onStart(callback) {
+  public onStart(callback: (selectedTrack: string) => void): void {
     this.element.addEventListener('click', (e) => {
       if (e.target === this.element || 
-          e.target.classList.contains('crt-text') ||
-          e.target.tagName === 'BUTTON') {
+          (e.target as HTMLElement).classList.contains('crt-text') ||
+          (e.target as HTMLElement).tagName === 'BUTTON') {
         callback(this.selectedTrackURL);
       }
     });
   }
 
-  addScanlineAnimation() {
+  public addScanlineAnimation(): void {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes scanline {
@@ -213,7 +232,7 @@ class SplashScreen {
     document.head.appendChild(style);
   }
 
-  createMusicSelector() {
+  public createMusicSelector(): HTMLDivElement {
     this.musicSelector = document.createElement('div');
     this.musicSelector.className = 'music-selector';
     // ... existing code for music selector ...
@@ -221,10 +240,9 @@ class SplashScreen {
     return this.musicSelector;
   }
   
-  // Add this new method to get the music selector element
-  getMusicSelector() {
+  public getMusicSelector(): HTMLDivElement | null {
     return this.musicSelector;
   }
 }
 
-export default SplashScreen; 
+export default SplashScreen;

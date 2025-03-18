@@ -111,7 +111,7 @@ class DemoApp {
       this.crtEffect.updateWithAudioData(audioData);
       
       // Apply CRT effect after visualizer renders
-      //this.crtEffect.apply();
+      this.crtEffect.apply();
 
       requestAnimationFrame(update);
     };
