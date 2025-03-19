@@ -28,18 +28,8 @@ class DemoApp {
     this.mainCanvas = document.createElement('canvas');
     this.mainCanvas.id = 'demoCanvas';
     
-    // Tunnel effect canvas
-    // this.tunnelCanvas = document.createElement('canvas');
-    // this.tunnelCanvas.id = 'tunnel-canvas';
-    // this.tunnelCanvas = document.getElementById('tunnel-canvas');
-    
     // Append both to body
-    // document.body.appendChild(this.tunnelCanvas);
     document.body.appendChild(this.mainCanvas);
-    
-    // Style the tunnel canvas
-    // this.tunnelCanvas.style.position = 'absolute';
-    // this.tunnelCanvas.style.zIndex = '-1';
   }
 
   private initComponents(): void {
@@ -60,7 +50,6 @@ class DemoApp {
     }
     
     // Extract just the filename from the URL to make the share link cleaner
-    // const songName = songUrl.split('/').pop();
     const songName = songUrl;
     const url = new URL(window.location.href);
     url.searchParams.set('song', songName || '');
@@ -142,7 +131,7 @@ class DemoApp {
   }
 
   private startMainLoop(): void {
-    const update = (): void => {
+    const update = (currentTime: number): void => {
       if (!this.visualizer.isRendering) return;
 
       // Get audio data for effects
@@ -150,33 +139,35 @@ class DemoApp {
       
       // Update effects
       this.crtEffect.updateWithAudioData(audioData);
-      
-      // Apply CRT effect after visualizer renders
-      this.crtEffect.apply();
+      this.crtEffect.apply(currentTime);
 
       requestAnimationFrame(update);
     };
     
-    update();
+    requestAnimationFrame(update);
   }
 
   private initEventListeners(): void {
     window.addEventListener('resize', () => this.handleResize());
     this.handleResize();
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'c' || e.key === 'C') {
+        this.crtEffect.toggleEffect();
+      }
+    });
   }
 
   private handleResize(): void {
     // Coordinate all resize handlers
     this.tunnelEffect.handleResize();
     this.visualizer.resize();
-    // this.crtEffect.handleResize();
+    this.crtEffect.handleResize();
   }
 
   public cleanup(): void {
     // Proper cleanup when needed
     this.visualizer.stop();
     this.audioSystem.pause();
-    // this.crtEffect.disable();
   }
 }
 
