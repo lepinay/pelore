@@ -8,14 +8,17 @@ class TransportControls {
 
   constructor(audioSystem: AudioSystem) {
     this.audioSystem = audioSystem;
-    this.audioIsPlaying = false;
+    this.audioIsPlaying = !audioSystem.audioElement.paused;
     this.audioElement = audioSystem.audioElement;
     
     // Properly bind the method
     this.updateTrackProgress = this.updateTrackProgress.bind(this);
+    this.updatePlayPauseButton = this.updatePlayPauseButton.bind(this);
     
     // Make sure we're adding the event listener to the correct element
     this.audioElement.addEventListener('timeupdate', () => this.updateTrackProgress());
+    this.audioElement.addEventListener('play', () => this.updatePlayPauseButton());
+    this.audioElement.addEventListener('pause', () => this.updatePlayPauseButton());
     
     // Create the UI elements
     this.createTransportControls();
@@ -26,6 +29,7 @@ class TransportControls {
     controls.id = 'transport-controls';
     controls.innerHTML = `
         <div class="transport-button prev-track" title="Previous Track (P key)">◀◀</div>
+        <div class="transport-button play-pause" title="Play/Pause (Space key)">▶/⏸</div>
         <div class="transport-button volume-down" title="Volume Down (Shift+Down key)">🔉</div>
         <div class="transport-button volume-up" title="Volume Up (Shift+Up key)">🔊</div>
         <div class="transport-button next-track" title="Next Track (N key)">▶▶</div>
@@ -139,6 +143,7 @@ class TransportControls {
     
     // Add click handlers
     controls.querySelector('.prev-track')?.addEventListener('click', () => this.changeTrack('prev'));
+    controls.querySelector('.play-pause')?.addEventListener('click', () => this.togglePlayPause());
     controls.querySelector('.next-track')?.addEventListener('click', () => this.changeTrack('next'));
     controls.querySelector('.volume-up')?.addEventListener('click', () => this.audioSystem.adjustVolume(0.05));
     controls.querySelector('.volume-down')?.addEventListener('click', () => this.audioSystem.adjustVolume(-0.05));
@@ -146,7 +151,10 @@ class TransportControls {
     document.body.appendChild(controls);
     
     // Initial update of the progress bar
-    this.updateTrackProgress();    
+    this.updateTrackProgress();
+    
+    // Update the play/pause button to reflect initial state
+    this.updatePlayPauseButton();
   }
 
   updateTrackProgress(): void {
@@ -199,6 +207,31 @@ class TransportControls {
     // Simple notification implementation
     console.log(`Now playing: ${trackName}`);
     // You could implement a proper visual notification here
+  }
+
+  togglePlayPause(): void {
+    if (!this.audioElement) return;
+    
+    if (this.audioElement.paused) {
+      this.audioElement.play();
+      this.audioIsPlaying = true;
+    } else {
+      this.audioElement.pause();
+      this.audioIsPlaying = false;
+    }
+  }
+  
+  updatePlayPauseButton(): void {
+    const playPauseButton = document.querySelector('.play-pause') as HTMLElement;
+    if (playPauseButton) {
+      if (this.audioElement.paused) {
+        playPauseButton.textContent = '▶';
+        playPauseButton.title = 'Play (Space key)';
+      } else {
+        playPauseButton.textContent = '⏸';
+        playPauseButton.title = 'Pause (Space key)';
+      }
+    }
   }
 }
 
