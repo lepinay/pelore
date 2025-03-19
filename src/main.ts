@@ -14,10 +14,12 @@ class DemoApp {
   private splashScreen: SplashScreen;
   private transportControls: TransportControls;
   private tunnelEffect: TunnelEffect;
+  private urlSongParam: string | null = null;
 
   constructor() {
     this.initDOM();
     this.initComponents();
+    this.checkUrlForSong();
     this.initFontLoading();
   }
 
@@ -45,6 +47,26 @@ class DemoApp {
     this.audioSystem = new AudioSystem();
   }
 
+  private checkUrlForSong(): void {
+    const urlParams = new URLSearchParams(window.location.search);
+    this.urlSongParam = urlParams.get('song');
+  }
+
+  private updateUrlWithSong(songUrl: string | null): void {
+    if (!songUrl || songUrl === 'none') {
+      // Clear the song parameter if no song is playing
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+    
+    // Extract just the filename from the URL to make the share link cleaner
+    // const songName = songUrl.split('/').pop();
+    const songName = songUrl;
+    const url = new URL(window.location.href);
+    url.searchParams.set('song', songName || '');
+    history.replaceState(null, '', url);
+  }
+
   private async initFontLoading(): Promise<void> {
     try {
       const font = new FontFaceObserver('Press Start 2P');
@@ -64,14 +86,30 @@ class DemoApp {
       this.splashScreen = new SplashScreen(this.audioSystem);
       // Initial setup
       this.splashScreen.addScanlineAnimation();
-      this.splashScreen.show();
-
+      
       this.transportControls = new TransportControls(this.audioSystem);
       this.tunnelEffect = new TunnelEffect(this.splashScreen.element);
       this.tunnelEffect.start();
       this.setupSplashScreenHandlers();
 
+      // Subscribe to track change events
+      this.audioSystem.onTrackChange((trackUrl) => {
+        this.updateUrlWithSong(trackUrl);
+      });
+
       this.initEventListeners();
+      
+      // If there's a song in the URL, start playing it immediately
+      if (this.urlSongParam) {
+        const songTrack = this.audioSystem.findTrackByName(this.urlSongParam);
+        if (songTrack) {
+          this.startDemo(songTrack);
+          return;
+        }
+      }
+      
+      // Otherwise show the splash screen
+      this.splashScreen.show();
 
     } catch (error) {
       console.error('Initialization failed:', error);
@@ -93,6 +131,9 @@ class DemoApp {
     if (selectedTrack !== 'none') {
       this.audioSystem.setTrackByURL(selectedTrack);
       this.audioSystem.play();
+      // URL update is now handled by the track change event
+    } else {
+      this.updateUrlWithSong(null);
     }
 
     // Visual setup
@@ -147,4 +188,4 @@ document.addEventListener('DOMContentLoaded', () => {
   (window as any).demoApp = app;
 });
 
-export default DemoApp; 
+export default DemoApp;

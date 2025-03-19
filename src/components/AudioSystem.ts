@@ -19,6 +19,8 @@ class AudioSystem {
   public isPlaying: boolean;
   public selectedTrackURL: string;
   private audioData: Uint8Array | null;
+  
+  private trackChangeListeners: ((trackUrl: string | null) => void)[] = [];
 
   constructor() {
     this.audioContext = new (window.AudioContext)();
@@ -142,6 +144,7 @@ class AudioSystem {
     this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
     this.selectedTrackURL = this.tracks[this.currentTrackIndex].url;
     this.play();
+    this.notifyTrackChangeListeners();
     return this.currentTrackIndex;
   }
 
@@ -149,6 +152,7 @@ class AudioSystem {
     this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
     this.selectedTrackURL = this.tracks[this.currentTrackIndex].url;
     this.play();
+    this.notifyTrackChangeListeners();
     return this.currentTrackIndex;
   }
 
@@ -163,6 +167,19 @@ class AudioSystem {
   public setTrackByURL(url: string): void {
     const index = this.tracks.findIndex(track => track.url === url);
     if (index !== -1) this.setTrack(index);
+
+    // Update current track and notify listeners
+    this.notifyTrackChangeListeners();
+  }
+
+  public onTrackChange(callback: (trackUrl: string | null) => void): void {
+    this.trackChangeListeners.push(callback);
+  }
+
+  private notifyTrackChangeListeners(): void {
+    for (const listener of this.trackChangeListeners) {
+      listener(this.selectedTrackURL);
+    }
   }
 
   public getCurrentTrack(): Track {
@@ -208,6 +225,22 @@ class AudioSystem {
       this.analyser.getByteFrequencyData(this.audioData!);
       return this.audioData;
     }
+    return null;
+  }
+
+  public findTrackByName(trackName: string): string | null {
+    // If tracks aren't loaded yet, return null
+    if (!this.tracks || this.tracks.length === 0) {
+      return null;
+    }
+    
+    // Try to find the track that ends with the provided name
+    for (const track of this.tracks) {
+      if (track.url.endsWith(trackName)) {
+        return track.url;
+      }
+    }
+    
     return null;
   }
 }
