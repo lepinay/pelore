@@ -5,6 +5,7 @@ import Visualizer from './components/Visualizer.js';
 import SplashScreen from './components/SplashScreen.js';
 import FontFaceObserver from 'https://cdn.jsdelivr.net/npm/fontfaceobserver@2.3.0/+esm';
 import TransportControls from './components/TransportControls.js';
+import TrackNotification from './components/TrackNotification.js';
 
 class DemoApp {
   private mainCanvas: HTMLCanvasElement;
@@ -14,6 +15,7 @@ class DemoApp {
   private splashScreen: SplashScreen;
   private transportControls: TransportControls;
   private tunnelEffect: TunnelEffect;
+  private trackNotification: TrackNotification;
   private urlSongParam: string | null = null;
 
   constructor() {
@@ -35,6 +37,11 @@ class DemoApp {
   private initComponents(): void {
     // Initialize components
     this.audioSystem = new AudioSystem();
+    this.trackNotification = new TrackNotification({
+      theme: 'retro',
+      position: 'bottom-right',
+      duration: 5000
+    });
   }
 
   private checkUrlForSong(): void {
@@ -84,7 +91,12 @@ class DemoApp {
       // Subscribe to track change events
       this.audioSystem.onTrackChange((trackUrl) => {
         this.updateUrlWithSong(trackUrl);
+
+        let track = this.audioSystem.findTrackByURL(trackUrl);
+        this.trackNotification.showTrackNotification(track.name);
+
       });
+
 
       this.initEventListeners();
       
@@ -168,6 +180,7 @@ class DemoApp {
     // Proper cleanup when needed
     this.visualizer.stop();
     this.audioSystem.pause();
+    this.trackNotification.destroy();
   }
 }
 
@@ -177,6 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Expose for debugging
   (window as any).demoApp = app;
+});
+
+window.addEventListener('beforeunload', () => {
+  const app = (window as any).demoApp as DemoApp;
+  app.cleanup();
 });
 
 export default DemoApp;

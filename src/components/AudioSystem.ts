@@ -243,6 +243,17 @@ class AudioSystem {
     
     return null;
   }
+
+  public findTrackByURL(url: string): Track | null {
+    // If tracks aren't loaded yet, return null
+    if (!this.tracks || this.tracks.length === 0) {
+      return null;
+    }
+    
+    // Find the track with the exact URL
+    const track = this.tracks.find(track => track.url === url);
+    return track || null;
+  }
 }
 
 export default AudioSystem;
