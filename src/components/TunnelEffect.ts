@@ -83,15 +83,55 @@ class TunnelEffect {
       #define PI 3.14159265358979323846
       #define TWO_PI 6.28318530718
 
+      // HSL to RGB conversion function
+      vec3 hsl2rgb(float h, float s, float l) {
+        // Ensure h is properly wrapped between 0 and 2PI
+        h = mod(h, TWO_PI);
+        
+        float c = (1.0 - abs(2.0 * l - 1.0)) * s;
+        float hp = h / (PI / 3.0);
+        float x = c * (1.0 - abs(mod(hp, 2.0) - 1.0));
+        vec3 rgb;
+        
+        if (hp <= 1.0) rgb = vec3(c, x, 0.0);
+        else if (hp <= 2.0) rgb = vec3(x, c, 0.0);
+        else if (hp <= 3.0) rgb = vec3(0.0, c, x);
+        else if (hp <= 4.0) rgb = vec3(0.0, x, c);
+        else if (hp <= 5.0) rgb = vec3(x, 0.0, c);
+        else rgb = vec3(c, 0.0, x);
+        
+        float m = l - c * 0.5;
+        return rgb + m;
+      }
+
       vec3 seamlessPattern(float angle, float depth) {
-        angle = fract(angle / TWO_PI);
-        float r = sin(angle * TWO_PI * 3.0 + time * colorSpeed) * 0.5 + 0.5;
-        float g = sin(depth * 5.0 + time * colorSpeed * 0.7) * 0.5 + 0.5;
-        float b = sin((angle * 4.0 + depth * 3.0) * TWO_PI + time * colorSpeed * 1.3) * 0.5 + 0.5;
-        r += sin(depth * 8.0) * 0.1;
-        g += sin(angle * TWO_PI * 6.0) * 0.1;
-        b += sin(depth * 10.0 + angle * TWO_PI * 4.0) * 0.1;
-        return vec3(r, g, b);
+        // Scale angle to ensure seamless wrapping around the tunnel
+        float scaledAngle = mod(angle, TWO_PI); 
+        
+        // For radial seamlessness, use a function that has continuous derivatives
+        // We'll use sin and cos which are naturally periodic and smooth
+        float pi2 = TWO_PI;
+        
+        // Calculate a continuous hue across depths using a smooth transition function
+        float depthFactor = sin(depth * pi2 * 0.3) * 0.5 + 0.5; // Smoothly varies from 0 to 1 and back
+        float hue = mod(scaledAngle / pi2 + depthFactor * 0.5 + time * colorSpeed * 0.1, 1.0) * pi2;
+        
+        // Use smooth periodic functions for saturation and lightness
+        float saturation = 0.7 + 0.3 * cos(depth * pi2 * 0.3 + time * 0.3);
+        float lightness = 0.5 + 0.2 * cos(scaledAngle * 2.0 + depth * pi2 * 0.3 + time * 0.5);
+        
+        // Apply rainbow color using HSL to RGB conversion
+        vec3 rainbow = hsl2rgb(hue, saturation, lightness);
+        
+        // Add variations with smooth transitions
+        float radialFactor = cos(depth * pi2 * 0.3);
+        float angularFactor = cos(scaledAngle * 4.0);
+        
+        rainbow.r += 0.1 * radialFactor;
+        rainbow.g += 0.1 * angularFactor;
+        rainbow.b += 0.1 * cos(depth * pi2 * 0.3 + scaledAngle * 2.0);
+        
+        return clamp(rainbow, 0.0, 1.0);
       }
 
       void main() {
@@ -100,8 +140,18 @@ class TunnelEffect {
         float radius = length(uv);
         float angle = atan(uv.y, uv.x);
         if (angle < 0.0) angle += TWO_PI;
-        float depth = fract(tunnelRadius / max(0.01, radius) + time * zoomSpeed);
-        float rotationAngle = angle + time * 0.2;
+        
+        // Continuous depth calculation without hard mod operation
+        // Use a formula that's continuous as radius approaches 0
+        float depth = tunnelRadius / max(0.01, radius) + time * zoomSpeed;
+        depth = depth * 0.5; // Scale down to make pattern less compressed
+        
+        // Instead of using mod which creates discontinuities, use sin or cos for periodicity
+        // sin(depth) will smoothly vary between -1 and 1, which we can remap to 0-1
+        float cyclicDepth = sin(depth) * 0.5 + 0.5; // Seamless cycle from 0 to 1 and back
+        
+        float rotationAngle = mod(angle + time * 0.2, TWO_PI);
+        
         vec3 color = seamlessPattern(rotationAngle, depth);
         float edge = 1.0 - smoothstep(0.5, 1.5, radius);
         gl_FragColor = vec4(color * edge, 1.0);

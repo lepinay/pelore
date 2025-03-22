@@ -47,7 +47,7 @@ class CRTEffect {
     this.params = {
       enabled: true,
       scanlineOpacity: 0.1,
-      scanlineSpacing: 4,
+      scanlineSpacing: 5,
       curvature: 0.08,
       vignette: 0.3,
       noise: 0.03,

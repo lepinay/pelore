@@ -42,7 +42,7 @@ class Visualizer {
       starCount: 300,
       baseAmplitude: 50,
       frequency: 0.05,
-      copperBarSpacing: 3,
+      copperBarSpacing: 4,
       maxCopperBars: 120
     };
 
