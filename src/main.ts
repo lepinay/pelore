@@ -39,7 +39,7 @@ class DemoApp {
     this.audioSystem = new AudioSystem();
     this.trackNotification = new TrackNotification({
       theme: 'retro',
-      position: 'bottom-right',
+      position: 'top-middle',
       duration: 5000
     });
   }

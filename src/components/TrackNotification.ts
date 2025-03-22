@@ -1,6 +1,6 @@
 interface TrackNotificationOptions {
   container?: HTMLElement;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position?: 'top-left' | 'top-middle' | 'top-right' | 'bottom-left' | 'bottom-right';
   duration?: number;
   showAnimation?: boolean;
   theme?: 'dark' | 'light' | 'retro';
@@ -22,7 +22,7 @@ class TrackNotification {
     // Default options
     this.options = {
       container: document.body,
-      position: 'bottom-right',
+      position: 'top-middle',
       duration: 5000,
       showAnimation: true,
       theme: 'retro',
@@ -48,6 +48,11 @@ class TrackNotification {
     
     // Position based on the option
     switch(this.options.position) {
+     case 'top-middle':
+        this.element.style.top = '20px';
+        this.element.style.left = '50%';
+        this.element.style.transform = 'translateX(-50%)';
+        break;
       case 'top-left':
         this.element.style.top = '20px';
         this.element.style.left = '20px';
@@ -128,9 +133,11 @@ class TrackNotification {
     
     const titleElement = this.element.querySelector('.notification-title') as HTMLElement;
     if (titleElement) {
+      titleElement.style.textAlign = 'center';  
       titleElement.style.fontWeight = 'bold';
       titleElement.style.marginBottom = '4px';
       titleElement.style.fontSize = '0.85em';
+      titleElement.style.color = '#fff';
     }
     
     const contentElement = this.element.querySelector('.notification-content') as HTMLElement;
