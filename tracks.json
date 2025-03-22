@@ -1,30 +1,5 @@
 [
     {
-        "name": "Agony - Intro - Amiga (TITAN)",
-        "file": "Agony - Intro - Amiga (TITAN).mp3",
-        "url": "/tracks/Agony%20-%20Intro%20-%20Amiga%20%28TITAN%29.mp3"
-    },
-    {
-        "name": "Agony - Niveau 1 - Amiga (TITAN)",
-        "file": "Agony - Niveau 1 - Amiga (TITAN).mp3",
-        "url": "/tracks/Agony%20-%20Niveau%201%20-%20Amiga%20%28TITAN%29.mp3"
-    },
-    {
-        "name": "Agony - Niveau 2 - Amiga (Moonchild)",
-        "file": "Agony - Niveau 2 - Amiga (Moonchild).mp3",
-        "url": "/tracks/Agony%20-%20Niveau%202%20-%20Amiga%20%28Moonchild%29.mp3"
-    },
-    {
-        "name": "Agony - Niveau 3 - Amiga (Moonchild)",
-        "file": "Agony - Niveau 3 - Amiga (Moonchild).mp3",
-        "url": "/tracks/Agony%20-%20Niveau%203%20-%20Amiga%20%28Moonchild%29.mp3"
-    },
-    {
-        "name": "Agony - Niveau 4 - Amiga (Moonchild)",
-        "file": "Agony - Niveau 4 - Amiga (Moonchild).mp3",
-        "url": "/tracks/Agony%20-%20Niveau%204%20-%20Amiga%20%28Moonchild%29.mp3"
-    },
-    {
         "name": "Agony - Title - Amiga (TITAN)",
         "file": "Agony - Title - Amiga (TITAN).mp3",
         "url": "/tracks/Agony%20-%20Title%20-%20Amiga%20%28TITAN%29.mp3"
@@ -35,19 +10,9 @@
         "url": "/tracks/Alien%20Breed%20-%20Menu%20%28version%20longue%29%20-%20Amiga%20%28Moonchild%29.mp3"
     },
     {
-        "name": "Alien Breed 2 - Amiga (TITAN)",
-        "file": "Alien Breed 2 - Amiga (TITAN).mp3",
-        "url": "/tracks/Alien%20Breed%202%20-%20Amiga%20%28TITAN%29.mp3"
-    },
-    {
-        "name": "Apidya - Titre - Amiga (Moonchild)",
-        "file": "Apidya - Titre - Amiga (Moonchild).mp3",
-        "url": "/tracks/Apidya%20-%20Titre%20-%20Amiga%20%28Moonchild%29.mp3"
-    },
-    {
-        "name": "Banshee - Intro - Amiga (Moonchild)",
-        "file": "Banshee - Intro - Amiga (Moonchild).mp3",
-        "url": "/tracks/Banshee%20-%20Intro%20-%20Amiga%20%28Moonchild%29.mp3"
+        "name": "Alien Breed - Menu (version normale) - Amiga (Moonchild)",
+        "file": "Alien Breed - Menu (version normale) - Amiga (Moonchild).mp3",
+        "url": "/tracks/Alien%20Breed%20-%20Menu%20%28version%20normale%29%20-%20Amiga%20%28Moonchild%29.mp3"
     },
     {
         "name": "Body Blows - Amiga (TITAN)",
@@ -60,38 +25,133 @@
         "url": "/tracks/Body%20Blows%202%20-%20Amiga%20%28TITAN%29.mp3"
     },
     {
+        "name": "CAPTAIN - Space Debris",
+        "file": "CAPTAIN - Space Debris.mp3",
+        "url": "/tracks/CAPTAIN%20-%20Space%20Debris.mp3"
+    },
+    {
+        "name": "Cannon Fodder - Amiga (TITAN)",
+        "file": "Cannon Fodder - Amiga (TITAN).mp3",
+        "url": "/tracks/Cannon%20Fodder%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Fury of the Furries - Forest level - Amiga (Moonchild)",
+        "file": "Fury of the Furries - Forest level - Amiga (Moonchild).mp3",
+        "url": "/tracks/Fury%20of%20the%20Furries%20-%20Forest%20level%20-%20Amiga%20%28Moonchild%29.mp3"
+    },
+    {
+        "name": "Gods - Amiga (TITAN)",
+        "file": "Gods - Amiga (TITAN).mp3",
+        "url": "/tracks/Gods%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Hired Guns - Titre - Amiga (Moonchild)",
+        "file": "Hired Guns - Titre - Amiga (Moonchild).mp3",
+        "url": "/tracks/Hired%20Guns%20-%20Titre%20-%20Amiga%20%28Moonchild%29.mp3"
+    },
+    {
+        "name": "Hired Guns - Victoire - Amiga (Moonchild)",
+        "file": "Hired Guns - Victoire - Amiga (Moonchild).mp3",
+        "url": "/tracks/Hired%20Guns%20-%20Victoire%20-%20Amiga%20%28Moonchild%29.mp3"
+    },
+    {
+        "name": "JESTER - Elysium",
+        "file": "JESTER - Elysium.mp3",
+        "url": "/tracks/JESTER%20-%20Elysium.mp3"
+    },
+    {
+        "name": "JESTER - Stardust Memories",
+        "file": "JESTER - Stardust Memories.mp3",
+        "url": "/tracks/JESTER%20-%20Stardust%20Memories.mp3"
+    },
+    {
+        "name": "Jaguar XJ 220 - Amiga (TITAN)",
+        "file": "Jaguar XJ 220 - Amiga (TITAN).mp3",
+        "url": "/tracks/Jaguar%20XJ%20220%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "L'Aigle d'or (Amiga)",
+        "file": "L'Aigle d'or (Amiga).mp3",
+        "url": "/tracks/L%27Aigle%20d%27or%20%28Amiga%29.mp3"
+    },
+    {
+        "name": "Lotus Esprit Turbo Challenge 2 - Amiga (TITAN)",
+        "file": "Lotus Esprit Turbo Challenge 2 - Amiga (TITAN).mp3",
+        "url": "/tracks/Lotus%20Esprit%20Turbo%20Challenge%202%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Lotus Esprit Turbo Challenge 3 - Amiga (TITAN)",
+        "file": "Lotus Esprit Turbo Challenge 3 - Amiga (TITAN).mp3",
+        "url": "/tracks/Lotus%20Esprit%20Turbo%20Challenge%203%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "MOBY - Knulla Kuk!",
+        "file": "MOBY - Knulla Kuk!.mp3",
+        "url": "/tracks/MOBY%20-%20Knulla%20Kuk%21.mp3"
+    },
+    {
+        "name": "Mean Arenas - Amiga (TITAN)",
+        "file": "Mean Arenas - Amiga (TITAN).mp3",
+        "url": "/tracks/Mean%20Arenas%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Miami Chase - Game Over - Amiga (TITAN)",
+        "file": "Miami Chase - Game Over - Amiga (TITAN).mp3",
+        "url": "/tracks/Miami%20Chase%20-%20Game%20Over%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Pegasus - Amiga (TITAN)",
+        "file": "Pegasus - Amiga (TITAN).mp3",
+        "url": "/tracks/Pegasus%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
         "name": "Pelore",
         "file": "Pelore.mp3",
         "url": "/tracks/Pelore.mp3"
     },
     {
-        "name": "Syndicate - Intro - Amiga (Moonchild)",
-        "file": "Syndicate - Intro - Amiga (Moonchild).mp3",
-        "url": "/tracks/Syndicate%20-%20Intro%20-%20Amiga%20%28Moonchild%29.mp3"
+        "name": "Pinball Dreams - Intro - Amiga (TITAN)",
+        "file": "Pinball Dreams - Intro - Amiga (TITAN).mp3",
+        "url": "/tracks/Pinball%20Dreams%20-%20Intro%20-%20Amiga%20%28TITAN%29.mp3"
     },
     {
-        "name": "Syndicate Intro",
-        "file": "Syndicate_Intro.mp3",
-        "url": "/tracks/Syndicate_Intro.mp3"
+        "name": "Pinball Fantasy - Amiga (TITAN)",
+        "file": "Pinball Fantasy - Amiga (TITAN).mp3",
+        "url": "/tracks/Pinball%20Fantasy%20-%20Amiga%20%28TITAN%29.mp3"
     },
     {
-        "name": "Xenon 2 Megablast",
-        "file": "Xenon_2_Megablast.mp3",
-        "url": "/tracks/Xenon_2_Megablast.mp3"
+        "name": "Pinball Illusion - Intro - Amiga (TITAN)",
+        "file": "Pinball Illusion - Intro - Amiga (TITAN).mp3",
+        "url": "/tracks/Pinball%20Illusion%20-%20Intro%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Project X Edition 93 - Amiga (TITAN)",
+        "file": "Project X Edition 93 - Amiga (TITAN).mp3",
+        "url": "/tracks/Project%20X%20Edition%2093%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Shockwave - Amiga (TITAN)",
+        "file": "Shockwave - Amiga (TITAN).mp3",
+        "url": "/tracks/Shockwave%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "The Settlers - Amiga (TITAN)",
+        "file": "The Settlers - Amiga (TITAN).mp3",
+        "url": "/tracks/The%20Settlers%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Turrican 2 - Amiga (TITAN)",
+        "file": "Turrican 2 - Amiga (TITAN).mp3",
+        "url": "/tracks/Turrican%202%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "Turrican 3 - Titre - Amiga (Moonchild)",
+        "file": "Turrican 3 - Titre - Amiga (Moonchild).mp3",
+        "url": "/tracks/Turrican%203%20-%20Titre%20-%20Amiga%20%28Moonchild%29.mp3"
     },
     {
         "name": "Xenon 2 Megablast - Amiga (TITAN)",
         "file": "Xenon 2 Megablast - Amiga (TITAN).mp3",
         "url": "/tracks/Xenon%202%20Megablast%20-%20Amiga%20%28TITAN%29.mp3"
-    },
-    {
-        "name": "Zool 2",
-        "file": "Zool_2.mp3",
-        "url": "/tracks/Zool_2.mp3"
-    },
-    {
-        "name": "Zool 2 - Amiga (TITAN)",
-        "file": "Zool 2 - Amiga (TITAN).mp3",
-        "url": "/tracks/Zool%202%20-%20Amiga%20%28TITAN%29.mp3"
     }
 ]

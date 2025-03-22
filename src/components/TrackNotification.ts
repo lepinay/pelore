@@ -107,6 +107,9 @@ class TrackNotification {
    * @param trackName The name of the track to display
    */
   public showTrackNotification(trackName: string): void {
+    // Change the page title
+    document.title = `${trackName}`;
+
     // Clear any existing timeout
     if (this.timeoutId !== null) {
       window.clearTimeout(this.timeoutId);
