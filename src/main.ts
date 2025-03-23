@@ -17,11 +17,13 @@ class DemoApp {
   private tunnelEffect: TunnelEffect;
   private trackNotification: TrackNotification;
   private urlSongParam: string | null = null;
+  private isFirefox: boolean = false;
 
   constructor() {
     this.initDOM();
     this.initComponents();
     this.checkUrlForSong();
+    this.detectBrowser();
     this.initFontLoading();
   }
 
@@ -74,11 +76,22 @@ class DemoApp {
     }
   }
 
+  private detectBrowser(): void {
+    this.isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+  }
+
   private async start(): Promise<void> {
     try {
       await this.audioSystem.loadMusicTracks();
       this.visualizer = new Visualizer(this.mainCanvas, this.audioSystem);
       this.crtEffect = new CRTEffect(this.mainCanvas);
+      
+      // Disable CRT effect on Firefox as it's too slow
+      if (this.isFirefox) {
+        this.crtEffect.toggleEffect(); // Disable it initially
+        console.log('CRT effect disabled for Firefox browser');
+      }
+      
       this.splashScreen = new SplashScreen(this.audioSystem);
       // Initial setup
       this.splashScreen.addScanlineAnimation();
@@ -164,7 +177,12 @@ class DemoApp {
     this.handleResize();
     window.addEventListener('keydown', (e) => {
       if (e.key === 'c' || e.key === 'C') {
-        this.crtEffect.toggleEffect();
+        // Only allow toggling if not Firefox
+        if (!this.isFirefox) {
+          this.crtEffect.toggleEffect();
+        } else {
+          console.log('CRT effect is disabled in Firefox for performance reasons');
+        }
       }
     });
   }

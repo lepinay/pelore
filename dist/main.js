@@ -9,9 +9,11 @@ import TrackNotification from './components/TrackNotification.js';
 class DemoApp {
     constructor() {
         this.urlSongParam = null;
+        this.isFirefox = false;
         this.initDOM();
         this.initComponents();
         this.checkUrlForSong();
+        this.detectBrowser();
         this.initFontLoading();
     }
     initDOM() {
@@ -57,11 +59,19 @@ class DemoApp {
             this.start();
         }
     }
+    detectBrowser() {
+        this.isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+    }
     async start() {
         try {
             await this.audioSystem.loadMusicTracks();
             this.visualizer = new Visualizer(this.mainCanvas, this.audioSystem);
             this.crtEffect = new CRTEffect(this.mainCanvas);
+            // Disable CRT effect on Firefox as it's too slow
+            if (this.isFirefox) {
+                this.crtEffect.toggleEffect(); // Disable it initially
+                console.log('CRT effect disabled for Firefox browser');
+            }
             this.splashScreen = new SplashScreen(this.audioSystem);
             // Initial setup
             this.splashScreen.addScanlineAnimation();
@@ -131,7 +141,13 @@ class DemoApp {
         this.handleResize();
         window.addEventListener('keydown', (e) => {
             if (e.key === 'c' || e.key === 'C') {
-                this.crtEffect.toggleEffect();
+                // Only allow toggling if not Firefox
+                if (!this.isFirefox) {
+                    this.crtEffect.toggleEffect();
+                }
+                else {
+                    console.log('CRT effect is disabled in Firefox for performance reasons');
+                }
             }
         });
     }
