@@ -224,6 +224,18 @@ class Visualizer {
 
   private setupEventListeners(): void {
     window.addEventListener('resize', () => this.resize());
+    
+    // Add keyboard event listener for arrows
+    window.addEventListener('keydown', (event) => {
+      switch (event.key) {
+        case 'ArrowUp':
+          this.adjustCopperBars(1);
+          break;
+        case 'ArrowDown':
+          this.adjustCopperBars(-1);
+          break;
+      }
+    });
   }
 }
 
