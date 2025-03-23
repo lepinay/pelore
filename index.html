@@ -26,7 +26,7 @@
             left: 0;
         }
         
-        /* Additional mobile-friendly styles */
+        /* Mobile-friendly styles */
         @media (max-width: 768px) {
             #floating-music-selector .selector-header {
                 font-size: 12px !important;
@@ -40,18 +40,22 @@
 
         #instructions {
             z-index: 2000;
+            display: none;
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #0ff;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <canvas id="demoCanvas"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/fontfaceobserver@2.1.0/fontfaceobserver.standalone.min.js"></script>
-    <script src="copper.js"></script>
-
-    
-    <!-- Instructions overlay that appears when pressing H key -->
-    <div id="instructions" style="display:none; position:fixed; bottom:10px; right:10px; background:rgba(0,0,0,0.7); color:#0ff; 
-         padding:10px; border-radius:5px; font-family:'Press Start 2P', cursive; font-size:10px; pointer-events:none;">
+    <div id="instructions">
         Press M to change music<br>
         N/P keys to change track<br>
         SHIFT + UP/DOWN for volume<br>
@@ -60,7 +64,9 @@
         H to toggle this help
     </div>
 
-    <script>
+    <script type="module">
+        import DemoApp from './dist/main.js';
+
         // Show instructions briefly at startup
         document.addEventListener('DOMContentLoaded', function() {
             const instructions = document.getElementById('instructions');
@@ -69,27 +75,17 @@
                 instructions.style.display = 'none';
             }, 5000);
             
-            // Toggle instructions with H key
-            window.addEventListener('keydown', function(e) {
-                if (e.key === 'h' || e.key === 'H') {
-                    instructions.style.display = 
-                        instructions.style.display === 'none' ? 'block' : 'none';
-                } else if (e.key === ' ' || e.code === 'Space') {
-                    // Trigger center click to toggle CRT effect, but only if demo has started
-                    if (window.isDemoStarted) {
-                        const canvas = document.getElementById('demoCanvas');
-                        if (canvas) {
-                            const centerX = canvas.width / 2;
-                            const centerY = canvas.height / 2;
-                            const clickEvent = new MouseEvent('click', {
-                                clientX: canvas.getBoundingClientRect().left + centerX,
-                                clientY: canvas.getBoundingClientRect().top + centerY
-                            });
-                            canvas.dispatchEvent(clickEvent);
-                        }
-                    }
-                }
-            });
+            // Initialize the application
+            // new DemoApp();
+        });
+
+        // Global event listeners
+        window.addEventListener('keydown', function(e) {
+            const instructions = document.getElementById('instructions');
+            if (e.key === 'h' || e.key === 'H') {
+                instructions.style.display = 
+                    instructions.style.display === 'none' ? 'block' : 'none';
+            }
         });
     </script>
 </body>

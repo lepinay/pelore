@@ -1,1 +1,4 @@
-tracks/*
+# Standard typescript output ignores
+node_modules/*
+
+
