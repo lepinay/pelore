@@ -77,7 +77,8 @@ class TransportControls {
             margin: '10px 0 5px 0',
             position: 'relative',
             overflow: 'hidden',
-            border: '1px solid rgba(0, 255, 255, 0.3)'
+            border: '1px solid rgba(0, 255, 255, 0.3)',
+            cursor: 'pointer' // Add cursor pointer to indicate clickable
         });
         // Style the progress bar
         const progressBar = controls.querySelector('#track-progress-bar');
@@ -88,30 +89,59 @@ class TransportControls {
             position: 'absolute',
             left: '0',
             top: '0',
-            transition: 'width 0.3s'
+            transition: 'width 0.1s' // Faster transition for more responsive seeking
         });
-        // Style the time display
-        const timeDisplay = controls.querySelector('#track-time-display');
-        Object.assign(timeDisplay.style, {
-            fontFamily: "'Press Start 2P', cursive",
-            fontSize: '10px',
-            color: '#0ff',
-            textAlign: 'center',
-            width: '100%',
-            marginTop: '3px'
+        // Add a seek preview indicator
+        const seekPreview = document.createElement('div');
+        seekPreview.id = 'seek-preview';
+        Object.assign(seekPreview.style, {
+            position: 'absolute',
+            height: '100%',
+            backgroundColor: 'rgba(0, 255, 255, 0.3)',
+            width: '0',
+            left: '0',
+            top: '0',
+            pointerEvents: 'none',
+            display: 'none'
         });
+        progressContainer.appendChild(seekPreview);
         // Make progress bar interactive - seek functionality
         progressContainer.addEventListener('click', (e) => {
-            if (!this.audioElement || !this.audioIsPlaying)
-                return;
             const rect = progressContainer.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
-            const percentage = clickX / rect.width;
-            // Seek to the clicked position
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
             if (this.audioElement.duration) {
+                // Seek to the clicked position
                 this.audioElement.currentTime = this.audioElement.duration * percentage;
                 this.updateTrackProgress();
             }
+        });
+        // Add mousemove to show preview of where seeking would go
+        progressContainer.addEventListener('mousemove', (e) => {
+            const seekPreview = document.getElementById('seek-preview');
+            if (!seekPreview)
+                return;
+            const rect = progressContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, mouseX / rect.width));
+            seekPreview.style.width = `${percentage * 100}%`;
+            seekPreview.style.display = 'block';
+            // Show time tooltip
+            if (this.audioElement.duration) {
+                const seekTime = this.formatTime(this.audioElement.duration * percentage);
+                progressContainer.title = `Seek to: ${seekTime}`;
+            }
+        });
+        progressContainer.addEventListener('mouseenter', () => {
+            const seekPreview = document.getElementById('seek-preview');
+            if (seekPreview)
+                seekPreview.style.display = 'block';
+        });
+        progressContainer.addEventListener('mouseleave', () => {
+            const seekPreview = document.getElementById('seek-preview');
+            if (seekPreview)
+                seekPreview.style.display = 'none';
+            progressContainer.title = '';
         });
         // Add hover effects to transport controls
         controls.addEventListener('mouseenter', () => {
