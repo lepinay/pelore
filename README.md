@@ -1,8 +1,9 @@
 # Copper Bars Demo
 
-![Demo Screenshot](./assets/screenshots/demo-screenshot.png)
-
 A retro Amiga-style demo with visual effects synchronized to classic Amiga music tracks. This demo features copper bars, starfield, and CRT effects that react to audio frequencies.
+
+Try it here ! => https://lepinay.github.io/pelore/
+
 
 ## Features
 
