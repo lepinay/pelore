@@ -105,11 +105,6 @@
         "url": "/tracks/Pegasus%20-%20Amiga%20%28TITAN%29.mp3"
     },
     {
-        "name": "Pelore",
-        "file": "Pelore.mp3",
-        "url": "/tracks/Pelore.mp3"
-    },
-    {
         "name": "Pinball Dreams - Intro - Amiga (TITAN)",
         "file": "Pinball Dreams - Intro - Amiga (TITAN).mp3",
         "url": "/tracks/Pinball%20Dreams%20-%20Intro%20-%20Amiga%20%28TITAN%29.mp3"
@@ -153,5 +148,10 @@
         "name": "Xenon 2 Megablast - Amiga (TITAN)",
         "file": "Xenon 2 Megablast - Amiga (TITAN).mp3",
         "url": "/tracks/Xenon%202%20Megablast%20-%20Amiga%20%28TITAN%29.mp3"
+    },
+    {
+        "name": "up Retour 2024(b92R)",
+        "file": "up Retour 2024(b92R).mp3",
+        "url": "/tracks/up%20Retour%202024%28b92R%29.mp3"
     }
 ]
