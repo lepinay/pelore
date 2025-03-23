@@ -60,7 +60,7 @@ class AudioSystem {
 
   public async loadMusicTracks(): Promise<void> {
     try {
-      const response = await fetch('tracks.json');
+      const response = await fetch('tracks.json?version=1.0.5');
       if (!response.ok) throw new Error('Failed to load tracks');
       const data: Track[] = await response.json();
       this.tracks = data.map(track => ({

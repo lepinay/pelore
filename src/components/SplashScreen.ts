@@ -34,7 +34,7 @@ class SplashScreen {
     this.element.id = 'splash-screen';
     this.element.innerHTML = `
       <div class="splash-content">
-        <h1>SYSTEM 1.3 INITIALISED.</h1>
+        <h1>SYSTEM 1.0.5 INITIALISED.</h1>
         <div class="music-selector">
           <div class="music-selection-text">SELECT TUNE:</div>
           <select id="music-select" class="music-select">
