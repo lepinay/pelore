@@ -1,9 +1,11 @@
 import AudioSystem from "./AudioSystem";
+import TrackListPopup from "./TrackListPopup.js";
 
 class TransportControls {
   private audioSystem: AudioSystem;
   private audioIsPlaying: boolean;
   private audioElement: HTMLAudioElement;
+  private trackListPopup: TrackListPopup;
 
   constructor(audioSystem: AudioSystem) {
     this.audioSystem = audioSystem;
@@ -19,6 +21,8 @@ class TransportControls {
     this.audioElement.addEventListener('play', () => this.updatePlayPauseButton());
     this.audioElement.addEventListener('pause', () => this.updatePlayPauseButton());
     
+    this.trackListPopup = new TrackListPopup(audioSystem);
+    
     // Create the UI elements
     this.createTransportControls();
   }
@@ -27,11 +31,12 @@ class TransportControls {
     const controls = document.createElement('div');
     controls.id = 'transport-controls';
     controls.innerHTML = `
-        <div class="transport-button prev-track" title="Previous Track (P key)">◀◀</div>
-        <div class="transport-button play-pause" title="Play/Pause (Space key)">▶/⏸</div>
+        <div class="transport-button prev-track" title="Previous Track (P key)">⏮</div>
+        <div class="transport-button play-pause" title="Play/Pause (Space key)">⏯</div>
         <div class="transport-button volume-down" title="Volume Down (Shift+Down key)">🔉</div>
         <div class="transport-button volume-up" title="Volume Up (Shift+Up key)">🔊</div>
-        <div class="transport-button next-track" title="Next Track (N key)">▶▶</div>
+        <div class="transport-button next-track" title="Next Track (N key)">⏭</div>
+        <div class="transport-button track-list" title="Show Track List">⏏</div>
         <div class="track-progress-container">
             <div id="track-progress-bar"></div>
         </div>
@@ -179,6 +184,7 @@ class TransportControls {
     controls.querySelector('.next-track')?.addEventListener('click', () => this.changeTrack('next'));
     controls.querySelector('.volume-up')?.addEventListener('click', () => this.audioSystem.adjustVolume(0.05));
     controls.querySelector('.volume-down')?.addEventListener('click', () => this.audioSystem.adjustVolume(-0.05));
+    controls.querySelector('.track-list')?.addEventListener('click', () => this.toggleTrackList());
     
     document.body.appendChild(controls);
     
@@ -187,6 +193,10 @@ class TransportControls {
     
     // Update the play/pause button to reflect initial state
     this.updatePlayPauseButton();
+  }
+
+  toggleTrackList(): void {
+    this.trackListPopup.toggle();
   }
 
   updateTrackProgress(): void {
@@ -232,6 +242,11 @@ class TransportControls {
     } else if (direction === 'prev') {
         this.audioSystem.playPrevious();
     }
+    
+    // Update track list if visible after track change
+    if (this.trackListPopup.visible) {
+      this.trackListPopup.updateTrackList();
+    }
   }
   
   // Add the showTrackNotification method that was being called but wasn't defined
@@ -251,13 +266,18 @@ class TransportControls {
       this.audioElement.pause();
       this.audioIsPlaying = false;
     }
+    
+    // Update track list if visible after play/pause
+    if (this.trackListPopup.visible) {
+      this.trackListPopup.updateTrackList();
+    }
   }
   
   updatePlayPauseButton(): void {
     const playPauseButton = document.querySelector('.play-pause') as HTMLElement;
     if (playPauseButton) {
       if (this.audioElement.paused) {
-        playPauseButton.textContent = '▶';
+        playPauseButton.textContent = '⏵';
         playPauseButton.title = 'Play (Space key)';
       } else {
         playPauseButton.textContent = '⏸';
