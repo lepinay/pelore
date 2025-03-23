@@ -114,11 +114,15 @@ class AudioSystem {
     }
   }
 
+  private isGitHubPages(): boolean {
+    return window.location.hostname === 'lepinay.github.io';
+  }
+
   public async play(url: string = this.selectedTrackURL): Promise<void> {
     if (url === 'none' || !url) return;
-    
+
     try {
-      this.audioElement.src = '/pelore' + url;
+      this.audioElement.src = this.isGitHubPages() ? '/pelore' + url : url;
       this.audioElement.volume = this.volume;
       this.audioElement.crossOrigin = 'anonymous';
       

@@ -84,11 +84,14 @@ class AudioSystem {
             console.warn('Error loading preferences:', error);
         }
     }
+    isGitHubPages() {
+        return window.location.hostname === 'lepinay.github.io';
+    }
     async play(url = this.selectedTrackURL) {
         if (url === 'none' || !url)
             return;
         try {
-            this.audioElement.src = '/pelore' + url;
+            this.audioElement.src = this.isGitHubPages() ? '/pelore' + url : url;
             this.audioElement.volume = this.volume;
             this.audioElement.crossOrigin = 'anonymous';
             await this.audioContext.resume();
