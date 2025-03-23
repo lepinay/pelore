@@ -18,7 +18,7 @@ export class TrackListPopup {
         // Create popup container
         this.popupElement = document.createElement('div');
         this.popupElement.id = 'track-list-popup';
-        // Style the popup - updated to match SplashScreen styling
+        // Style the popup - updated to match SplashScreen styling with custom scrollbar
         Object.assign(this.popupElement.style, {
             position: 'fixed',
             top: '50%',
@@ -35,8 +35,33 @@ export class TrackListPopup {
             overflowY: 'auto',
             display: 'none', // Initially hidden
             color: '#0ff',
-            fontFamily: "'Press Start 2P', cursive"
+            fontFamily: "'Press Start 2P', cursive",
+            scrollbarWidth: 'thin', // For Firefox
+            scrollbarColor: '#0ff #001a1a', // For Firefox
         });
+        // Add custom scrollbar styles for webkit browsers
+        this.popupElement.innerHTML = `
+      <style>
+        #track-list-popup::-webkit-scrollbar {
+          width: 8px;
+          background: #001a1a;
+        }
+        #track-list-popup::-webkit-scrollbar-thumb {
+          background: #0ff;
+          border-radius: 4px;
+          box-shadow: 0 0 5px #0ff;
+        }
+        #track-list-popup::-webkit-scrollbar-thumb:hover {
+          background: #00ffff99;
+          box-shadow: 0 0 8px #0ff;
+        }
+        #track-list-popup::-webkit-scrollbar-track {
+          background: #001a1a;
+          border-radius: 4px;
+          box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+        }
+      </style>
+    `;
         // Add header
         const header = document.createElement('div');
         header.innerHTML = `
@@ -51,8 +76,33 @@ export class TrackListPopup {
         Object.assign(trackListContainer.style, {
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px'
+            gap: '8px',
+            maxHeight: 'calc(80vh - 80px)', // Adjust for header space
+            overflowY: 'auto'
         });
+        // Add custom scrollbar styles for the track list container
+        trackListContainer.innerHTML = `
+      <style>
+        #track-list-container::-webkit-scrollbar {
+          width: 8px;
+          background: #001a1a;
+        }
+        #track-list-container::-webkit-scrollbar-thumb {
+          background: #0ff;
+          border-radius: 4px;
+          box-shadow: 0 0 5px #0ff;
+        }
+        #track-list-container::-webkit-scrollbar-thumb:hover {
+          background: #00ffff99;
+          box-shadow: 0 0 8px #0ff;
+        }
+        #track-list-container::-webkit-scrollbar-track {
+          background: #001a1a;
+          border-radius: 4px;
+          box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+        }
+      </style>
+    `;
         this.popupElement.appendChild(trackListContainer);
         document.body.appendChild(this.popupElement);
         // Add close handler

@@ -130,7 +130,10 @@ class SplashScreen {
       boxShadow: '0 0 10px #0ff',
       width: '300px',
       cursor: 'pointer',
-      textAlign: 'center'
+      textAlign: 'center',
+      // Add these properties for Firefox
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#0ff #001a1a'
     });
 
     // Add hover effects
@@ -141,6 +144,60 @@ class SplashScreen {
     musicSelect.addEventListener('mouseout', () => {
       musicSelect.style.backgroundColor = '#000';
     });
+
+    // Create a more comprehensive stylesheet for all scrollbars in the application
+    const scrollbarStyles = document.createElement('style');
+    scrollbarStyles.textContent = `
+      /* Target the music select dropdown */
+      #music-select::-webkit-scrollbar {
+        width: 8px;
+        background: #001a1a;
+      }
+      #music-select::-webkit-scrollbar-thumb {
+        background: #0ff;
+        border-radius: 4px;
+        box-shadow: 0 0 5px #0ff;
+      }
+      #music-select::-webkit-scrollbar-thumb:hover {
+        background: #00ffff99;
+        box-shadow: 0 0 8px #0ff;
+      }
+      #music-select::-webkit-scrollbar-track {
+        background: #001a1a;
+        border-radius: 4px;
+        box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+      }
+      
+      /* Target the dropdown list for the select element */
+      select.music-select option {
+        background-color: #000;
+        color: #0ff;
+        font-family: 'Press Start 2P', cursive;
+      }
+      
+      /* For Webkit browsers - target dropdown scrollbar */
+      select::-webkit-scrollbar {
+        width: 8px;
+        background: #001a1a;
+      }
+      select::-webkit-scrollbar-thumb {
+        background: #0ff;
+        border-radius: 4px;
+        box-shadow: 0 0 5px #0ff;
+      }
+      select::-webkit-scrollbar-thumb:hover {
+        background: #00ffff99;
+        box-shadow: 0 0 8px #0ff;
+      }
+      select::-webkit-scrollbar-track {
+        background: #001a1a;
+        border-radius: 4px;
+        box-shadow: inset 0 0 5px rgba(0, 255, 255, 0.2);
+      }
+    `;
+
+    // Insert scrollbar styles into the document
+    document.head.appendChild(scrollbarStyles);
   }
 
   private initMusicSelector(): void {
