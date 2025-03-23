@@ -88,7 +88,7 @@ class AudioSystem {
         if (url === 'none' || !url)
             return;
         try {
-            this.audioElement.src = url;
+            this.audioElement.src = '/pelore' + url;
             this.audioElement.volume = this.volume;
             this.audioElement.crossOrigin = 'anonymous';
             await this.audioContext.resume();
